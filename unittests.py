@@ -37,5 +37,17 @@ class TestDataLoaderFunctions(unittest.TestCase):
 
         self.assertEqual(result, base_result)
 
+    def test_transform_yahoo_timeseries(self):
+        test_data = os.path.join(self.data_folder,
+                'test_transform_yahoo_timeseries.data.py')
+        data = utils.deserialise_obj(test_data)
+        result = data_loader.transform_yahoo_timeseries(data, 'IBM')
+
+        test_result = os.path.join(self.data_folder, 
+                'test_transform_yahoo_timeseries.result.py')
+        base_result = utils.deserialise_obj(test_result)
+
+        self.assertEqual(result, base_result)
+
 if __name__ == '__main__':
     unittest.main()

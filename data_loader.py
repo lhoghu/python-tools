@@ -14,10 +14,89 @@ METADATA = 'metadata'
 ################################################################################
 
 treasuries_config = {
-    'TREASURIES_URL': r'http://www.federalreserve.gov/datadownload/Output.aspx?rel=H15&series=bf17364827e38702b42a58cf8eaa3f78&lastObs=&from=&to=&filetype=csv&label=include&layout=seriescolumn',
-    'ID_FIELD': 'Unique Identifier: ',
-    'DATE_REGEX': '^[0-9]{4}-[0-9]{2}-[0-9]{2}'
-}
+        'TREASURIES_URL': r'http://www.federalreserve.gov/datadownload/Output.aspx?rel=H15&series=bf17364827e38702b42a58cf8eaa3f78&lastObs=&from=&to=&filetype=csv&label=include&layout=seriescolumn',
+        'ID_FIELD': 'Unique Identifier: ',
+        'DATE_REGEX': '^[0-9]{4}-[0-9]{2}-[0-9]{2}'
+        }
+
+yahoo_config = {
+        'HISTO_URL': 'http://ichart.yahoo.com/table.csv?',
+        'DATE_COL': 'Date',
+        'CLOSE_COL': 'Close'
+        }
+
+################################################################################
+
+def download_yahoo_quote():
+    '''
+    Retrieve the latest quote for a symbol from yahoo finance
+
+    See http://www.gummy-stuff.org/Yahoo-data.htm for detail on what
+    yahoo make available
+    '''
+    # TODO
+    raise 'Not implemented'
+
+################################################################################
+
+def download_yahoo_timeseries(symbol, start, end):
+    data = download_yahoo_timeseries_raw(symbol, start, end)
+    return transform_yahoo_timeseries(data, symbol)
+
+################################################################################
+
+def download_yahoo_timeseries_raw(symbol, start, end):
+    '''
+    Retrieve time series for a symbol from yahoo finance
+    '''
+    logging.info('Retrieving time series for symbol {0} from Yahoo finance'.
+            format(symbol))
+
+    params = {
+            'base': yahoo_config['HISTO_URL'],
+            'symbol': symbol,
+            'start_month': start.month - 1,
+            'start_day': start.day,
+            'start_year': start.year,
+            'end_month': end.month - 1,
+            'end_day': end.day,
+            'end_year': end.year
+            }
+    url = '{base}s={symbol}&a={start_month}&b={start_day}&c={start_year}&d={end_month}&e={end_day}&f={end_year}&g=d&ignore=.csv'.format(**params)
+
+    data = download_csv(url)
+    return data
+
+################################################################################
+
+def transform_yahoo_timeseries(data, unique_id):
+    '''
+    Turn time series data from yahoo into form suitable for downstream 
+    processing
+    '''
+
+    logging.debug('Transforming yahoo data')
+
+    if len(data) == 0:
+        return {}
+
+    date = data[0].index(yahoo_config['DATE_COL'])
+    close = data[0].index(yahoo_config['CLOSE_COL'])
+
+    def timepoint(row):
+        year, month, day = row[date].split('-')
+        dte = datetime.datetime(int(year), int(month), int(day))
+        return (dte, row[close])
+
+    timeseries = [timepoint(row) for row in data[1:]]
+
+    return { 
+            unique_id: 
+            {
+                TIMESERIES: timeseries,
+                METADATA: {}
+                } 
+            }
 
 ################################################################################
 
@@ -65,21 +144,21 @@ def transform_treasuries_data(data):
     Turn the raw data returned from the fed website into a form
     appropriate for downstream processing
 
-    For now returns a python object
+    For now returns a python dictionary
     In future might pass in a sink object to load the data to
     '''
 
     logging.debug('Transforming treasuries data')
 
     if len(data) == 0:
-        return data
+        return {}
 
     # The first column is metadata headers and date information, the
     # remaining columns are the metadata and data associated with each
     # time series
     nb_time_series = len(data[0]) - 1
     if nb_time_series < 1:
-        return data
+        return {}
 
     # Initialise the return object - this will by an dictionary of 
     # dictionaries, Each dictionary is an individual time series with 2 keys:
@@ -125,8 +204,13 @@ def transform_treasuries_data(data):
 if __name__ == '__main__':
     logging.basicConfig(level='DEBUG')
     import utils
-    data = download_csv(treasuries_config['TREASURIES_URL'])
-    nb_rows = len(data)
-    test_data = data[:10] + data[nb_rows-10:]
-    utils.serialise_obj(test_data, 'test_transform_treasuries_data.data.py')
-    utils.serialise_obj(transform_treasuries_data(test_data), 'test_transform_treasuries_data.result.py')
+    utils.serialise_obj(
+            download_yahoo_timeseries(
+                'IBM', 
+                datetime.datetime(2012, 11, 11), 
+                datetime.datetime(2013, 11, 11)), 
+            'cache/yahoo_data.py')
+
+    # utils.serialise_obj(download_treasuries(), 'cache/treasuries_data.py')
+
+################################################################################
