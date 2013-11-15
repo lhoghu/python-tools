@@ -125,4 +125,6 @@ def transform_treasuries_data(data):
 if __name__ == '__main__':
     logging.basicConfig(level='DEBUG')
     import utils
-    utils.serialise_obj(download_treasuries(), 'treasuries.py')
+    data = download_csv(treasuries_config['TREASURIES_URL'])
+    utils.serialise_obj(data, 'test_transform_treasuries_data.data.py')
+    utils.serialise_obj(transform_treasuries_data(data), 'test_transform_treasuries_data.result.py')
