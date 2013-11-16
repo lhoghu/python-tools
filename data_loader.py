@@ -1,5 +1,6 @@
 import os
 import logging
+from urllib import urlencode as urlencode
 import urllib2
 import csv
 import tempfile
@@ -22,7 +23,15 @@ treasuries_config = {
 yahoo_config = {
         'HISTO_URL': 'http://ichart.yahoo.com/table.csv?',
         'DATE_COL': 'Date',
-        'CLOSE_COL': 'Close'
+        'CLOSE_COL': 'Close',
+        'DATEFMT': '%Y-%m-%d'
+        }
+
+google_config = {
+        'HISTO_URL': 'http://www.google.com/finance/historical?',
+        'DATE_COL': 'Date',
+        'CLOSE_COL': 'Close',
+        'DATEFMT': '%d-%b-%y'
         }
 
 ################################################################################
@@ -74,18 +83,68 @@ def transform_yahoo_timeseries(data, unique_id):
     Turn time series data from yahoo into form suitable for downstream 
     processing
     '''
-
     logging.debug('Transforming yahoo data')
+    return transform_timeseries_table(data, unique_id, yahoo_config)
 
+################################################################################
+
+def download_google_timeseries(symbol, start, end):
+    data = download_google_timeseries_raw(symbol, start, end)
+    return transform_google_timeseries(data, symbol)
+
+################################################################################
+
+def download_google_timeseries_raw(symbol, start, end):
+    '''
+    Retrieve time series for a symbol from yahoo finance
+    '''
+    logging.info('Retrieving time series for symbol {0} from Google finance'.
+            format(symbol))
+
+    params = {
+            'q': symbol,
+            'startdate': start.strftime('%b %d, %Y'),
+            'enddate': end.strftime('%b %d, %Y'),
+            'output': 'csv'
+            }
+    url = '{0}{1}'.format(google_config['HISTO_URL'], urlencode(params))
+
+    data = download_csv(url)
+    return data
+
+################################################################################
+
+def transform_google_timeseries(data, unique_id):
+    '''
+    Turn time series data from google into form suitable for downstream 
+    processing
+    '''
+    logging.debug('Transforming google data')
+    return transform_timeseries_table(data, unique_id, google_config)
+
+################################################################################
+
+def transform_timeseries_table(data, unique_id, config):
+    '''
+    Turns tables of the form
+    Date, Open, High, Low, Close, Volume, ...
+    2012-11-11, 125, 634, 234.2, 623.52, 26642, ...
+    2012-11-12, 125, 634, 234.2, 623.52, 26642, ...
+    ...
+
+    into a dictionary of the form
+    { unique_id: 
+        timeseries: [(date1, close1), (date2, close2), ...], 
+        metadata: {}}
+    '''
     if len(data) == 0:
         return {}
 
-    date = data[0].index(yahoo_config['DATE_COL'])
-    close = data[0].index(yahoo_config['CLOSE_COL'])
+    date = data[0].index(config['DATE_COL'])
+    close = data[0].index(config['CLOSE_COL'])
 
     def timepoint(row):
-        year, month, day = row[date].split('-')
-        dte = datetime.datetime(int(year), int(month), int(day))
+        dte = datetime.datetime.strptime(row[date], config['DATEFMT'])
         return (dte, row[close])
 
     timeseries = [timepoint(row) for row in data[1:]]
@@ -115,6 +174,7 @@ def download_csv(url):
     Download raw csv from url
     Return the contents in a python array
     '''
+    logging.debug('Downloading from {url}'.format(url=url))
     socket = urllib2.urlopen(url)
 
     # Write to a temporary csv so we can use csv.reader in a simple way
@@ -123,7 +183,11 @@ def download_csv(url):
     data = []
     try:
         with open(tmpfile, 'w') as f:
-            f.write(socket.read())
+            # The decode is here to strip any BOM at the beginning of the file
+            # Google return this so windows excel can pick up the utf-8 charset
+            # We don't need it and it propagates through as a byte string
+            # that complicates subsequent parsing
+            f.write(socket.read().decode('utf-8-sig'))
 
         with open(tmpfile, 'r') as f:
             reader = csv.reader(f)
@@ -204,12 +268,19 @@ def transform_treasuries_data(data):
 if __name__ == '__main__':
     logging.basicConfig(level='DEBUG')
     import utils
+    # utils.serialise_obj(
+    #         download_yahoo_timeseries_raw(
+    #             'IBM', 
+    #             datetime.datetime(2012, 11, 11), 
+    #             datetime.datetime(2013, 11, 11)), 
+    #         'cache/yahoo_data.py')
+
     utils.serialise_obj(
-            download_yahoo_timeseries(
-                'IBM', 
+            download_google_timeseries_raw(
+                'GOOG', 
                 datetime.datetime(2012, 11, 11), 
                 datetime.datetime(2013, 11, 11)), 
-            'cache/yahoo_data.py')
+            'cache/google_data.py')
 
     # utils.serialise_obj(download_treasuries(), 'cache/treasuries_data.py')
 

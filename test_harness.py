@@ -35,6 +35,12 @@ def get_yahoo_stock(symbol, start, end):
 
 ################################################################################
 
+def get_google_stock(symbol, start, end):
+    data = data_loader.download_google_timeseries(symbol, start, end)
+    return zip(*data[symbol][data_loader.TIMESERIES])
+
+################################################################################
+
 def plot_stock(symbol, start, end):
     dates, values = get_yahoo_stock(symbol, start, end)
     line_plot(dates, values)
@@ -56,6 +62,14 @@ def generate_test_transform_yahoo_timeseries():
     utils.serialise_obj(data, 'testdata/test_transform_yahoo_timeseries.data.py')
     utils.serialise_obj(data_loader.transform_yahoo_timeseries(data, symbol), 'testdata/test_transform_yahoo_timeseries.result.py')
 
+def generate_test_transform_google_timeseries():
+    symbol = 'GOOG'
+    start = datetime.datetime(2013, 10, 11)
+    end = datetime.datetime(2013, 11, 11)
+    data = data_loader.download_google_timeseries_raw(symbol, start, end)
+    utils.serialise_obj(data, 'testdata/test_transform_google_timeseries.data.py')
+    utils.serialise_obj(data_loader.transform_google_timeseries(data, symbol), 'testdata/test_transform_google_timeseries.result.py')
+
 ################################################################################
 
 if __name__ == '__main__':
@@ -63,8 +77,9 @@ if __name__ == '__main__':
     # plot_treasuries()
     # plot_stock(
     #         'IBM', 
-    #         datetime.datetime(2012, 11, 11), 
+    #         datetime.datetime(2003, 11, 11), 
     #         datetime.datetime(2013, 11, 11))
-    generate_test_transform_yahoo_timeseries()
+    generate_test_transform_google_timeseries()
+    # generate_test_transform_yahoo_timeseries()
 
 ################################################################################
