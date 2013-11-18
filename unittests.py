@@ -32,6 +32,58 @@ class TestUtilsFunctions(unittest.TestCase):
             os.remove(tmpfile)
         self.assertEqual(data, result)
 
+    def test_offset(self):
+        '''
+        Package together the properties we want for the date offset 
+        function into a single test
+        '''
+        # Basic function: single business day offset
+        result = utils.offset(datetime.datetime(2013, 11, 11), 1)
+        self.assertEqual(result, datetime.datetime(2013, 11, 12))
+
+        # Check one week offset
+        result = utils.offset(datetime.datetime(2013, 11, 14), -5)
+        self.assertEqual(result, datetime.datetime(2013, 11, 7))
+
+        # Check we move forward across a weekend correctly
+        # - if we land on a saturday
+        result = utils.offset(datetime.datetime(2013, 11, 13), 3, 'BD')
+        self.assertEqual(result, datetime.datetime(2013, 11, 18))
+
+        # - if we land on a sunday
+        result = utils.offset(datetime.datetime(2013, 11, 13), 4, 'bd')
+        self.assertEqual(result, datetime.datetime(2013, 11, 18))
+
+        # And backward across a weekend 
+        result = utils.offset(datetime.datetime(2013, 11, 11), -1)
+        self.assertEqual(result, datetime.datetime(2013, 11, 8))
+        
+        # Check we bridge two weekends successfully 
+        result = utils.offset(datetime.datetime(2013, 11, 11), -7)
+        self.assertEqual(result, datetime.datetime(2013, 10, 31))
+
+        # Check one month move
+        result = utils.offset(datetime.datetime(2013, 11, 11), -1, 'M')
+        self.assertEqual(result, datetime.datetime(2013, 10, 11))
+
+        # Check one month move that lands on a weekend moves to the
+        # next business day - also check case insensitivity
+        result = utils.offset(datetime.datetime(2013, 11, 12), -1, 'm')
+        self.assertEqual(result, datetime.datetime(2013, 10, 11))
+
+        # Check one year move
+        result = utils.offset(datetime.datetime(2013, 11, 12), 1, 'Y')
+        self.assertEqual(result, datetime.datetime(2014, 11, 12))
+        
+        # Check one year move that lands on a weekend moves to the
+        # next business day - also check case insensitivity
+        result = utils.offset(datetime.datetime(2013, 11, 15), 1, 'y')
+        self.assertEqual(result, datetime.datetime(2014, 11, 17))
+
+        # Check exception is thrown if the period isn't recognised
+        self.assertRaises(ValueError, 
+                utils.offset, datetime.datetime(2013, 11, 11), 1, 'X')
+
 ################################################################################
 
 class TestTimeseriesFunctions(unittest.TestCase):
@@ -71,6 +123,115 @@ class TestTimeseriesFunctions(unittest.TestCase):
                 (datetime.datetime(2013, 11, 13), math.log(0.51/6.30)),
                 ]
         self.assertEqual(ts_log_returns, expected_results)
+
+    def test_mean(self):
+        ts = [
+                (datetime.datetime(2013, 10, 31), 4.53),
+                (datetime.datetime(2013, 11, 1), 3.87),
+                (datetime.datetime(2013, 11, 4), -2.89),
+                (datetime.datetime(2013, 11, 5), -0.18),
+                (datetime.datetime(2013, 11, 6), 1.36),
+                (datetime.datetime(2013, 11, 7), 6.32),
+                (datetime.datetime(2013, 11, 8), 0.51),
+                (datetime.datetime(2013, 11, 11), -5.98),
+                (datetime.datetime(2013, 11, 12), -6.30),
+                (datetime.datetime(2013, 11, 13), 0.51),
+                ]
+        
+        mean = timeseries.mean(ts)
+
+        expected_result = [(datetime.datetime(2013, 11, 13), 
+            (4.53 + 3.87 - 2.89 - 0.18 + 1.36 + 
+                6.32 + 0.51 - 5.98 - 6.30 + 0.51)/10.0)]
+        self.assertEqual(mean, expected_result)
+
+    def test_sd(self):
+        ts = [
+                (datetime.datetime(2013, 10, 31), 4.53),
+                (datetime.datetime(2013, 11, 1), 3.87),
+                (datetime.datetime(2013, 11, 4), -2.89),
+                (datetime.datetime(2013, 11, 5), -0.18),
+                (datetime.datetime(2013, 11, 6), 1.36),
+                (datetime.datetime(2013, 11, 7), 6.32),
+                (datetime.datetime(2013, 11, 8), 0.51),
+                (datetime.datetime(2013, 11, 11), -5.98),
+                (datetime.datetime(2013, 11, 12), -6.30),
+                (datetime.datetime(2013, 11, 13), 0.51),
+                ]
+        
+        sd = timeseries.sd(ts)
+
+        ave = (4.53 + 3.87 - 2.89 - 0.18 + 1.36 + 
+                6.32 + 0.51 - 5.98 - 6.30 + 0.51)/10.0
+        var = ((4.53 - ave)**2 + (3.87 - ave)**2 + (-2.89 - ave)**2 + 
+                (-0.18 - ave)**2 + (1.36 - ave)**2 + (6.32 - ave)**2 + 
+                (0.51 - ave)**2 + (-5.98 - ave)**2 + (-6.30 - ave)**2 + 
+                (0.51 - ave)**2)/10.0
+
+        expected_result = [(datetime.datetime(2013, 11, 13), var**0.5)]
+        self.assertEqual(sd, expected_result)
+
+    def test_zscore(self):
+        ts = [
+                (datetime.datetime(2013, 10, 31), 4.53),
+                (datetime.datetime(2013, 11, 1), 3.87),
+                (datetime.datetime(2013, 11, 4), -2.89),
+                (datetime.datetime(2013, 11, 5), -0.18),
+                (datetime.datetime(2013, 11, 6), 1.36),
+                (datetime.datetime(2013, 11, 7), 6.32),
+                (datetime.datetime(2013, 11, 8), 0.51),
+                (datetime.datetime(2013, 11, 11), -5.98),
+                (datetime.datetime(2013, 11, 12), -6.30),
+                (datetime.datetime(2013, 11, 13), 0.51),
+                ]
+        
+        zsc = timeseries.zscore(ts)
+
+        ave = (4.53 + 3.87 - 2.89 - 0.18 + 1.36 + 
+                6.32 + 0.51 - 5.98 - 6.30 + 0.51)/10.0
+        var = ((4.53 - ave)**2 + (3.87 - ave)**2 + (-2.89 - ave)**2 + 
+                (-0.18 - ave)**2 + (1.36 - ave)**2 + (6.32 - ave)**2 + 
+                (0.51 - ave)**2 + (-5.98 - ave)**2 + (-6.30 - ave)**2 + 
+                (0.51 - ave)**2)/10.0
+        expected_result = [(datetime.datetime(2013, 11, 13), 
+            (0.51 - ave)/(var**0.5))]
+        self.assertEqual(zsc, expected_result)
+
+    def test_min(self):
+        ts = [
+                (datetime.datetime(2013, 10, 31), 4.53),
+                (datetime.datetime(2013, 11, 1), 3.87),
+                (datetime.datetime(2013, 11, 4), -2.89),
+                (datetime.datetime(2013, 11, 5), -0.18),
+                (datetime.datetime(2013, 11, 6), 1.36),
+                (datetime.datetime(2013, 11, 7), 6.32),
+                (datetime.datetime(2013, 11, 8), 0.51),
+                (datetime.datetime(2013, 11, 11), -5.98),
+                (datetime.datetime(2013, 11, 12), -6.30),
+                (datetime.datetime(2013, 11, 13), 0.51),
+                ]
+        
+        ts_min = timeseries.min(ts)
+        expected_result = [(datetime.datetime(2013, 11, 12), -6.30)]
+        self.assertEqual(ts_min, expected_result)
+
+    def test_max(self):
+        ts = [
+                (datetime.datetime(2013, 10, 31), 4.53),
+                (datetime.datetime(2013, 11, 1), 3.87),
+                (datetime.datetime(2013, 11, 4), -2.89),
+                (datetime.datetime(2013, 11, 5), -0.18),
+                (datetime.datetime(2013, 11, 6), 1.36),
+                (datetime.datetime(2013, 11, 7), 6.32),
+                (datetime.datetime(2013, 11, 8), 0.51),
+                (datetime.datetime(2013, 11, 11), -5.98),
+                (datetime.datetime(2013, 11, 12), -6.30),
+                (datetime.datetime(2013, 11, 13), 0.51),
+                ]
+        
+        ts_max = timeseries.max(ts)
+        expected_result = [(datetime.datetime(2013, 11, 7), 6.32)]
+        self.assertEqual(ts_max, expected_result)
 
 ################################################################################
 
@@ -129,6 +290,8 @@ class TestDataLoaderFunctions(unittest.TestCase):
 ################################################################################
 
 if __name__ == '__main__':
+    # import logging
+    # logging.basicConfig(level='DEBUG')
     unittest.main()
 
 ################################################################################ 
