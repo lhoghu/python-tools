@@ -64,11 +64,8 @@ def min(ts):
     '''
     Return the min and date of min for the input timeseries as a timeseries object
     '''
-    def min_and_date((mx, my), (x, y)):
-        if y < my: return (x, y)
-        return (mx, my)
-
-    return [reduce(min_and_date, ts)]
+    import __builtin__
+    return [__builtin__.min(ts, key=lambda tp: tp[1])]
 
 ################################################################################
 
@@ -76,10 +73,7 @@ def max(ts):
     '''
     Return the max and date of max for the input timeseries as a timeseries object
     '''
-    def max_and_date((mx, my), (x, y)):
-        if y > my: return (x, y)
-        return (mx, my)
-
-    return [reduce(max_and_date, ts)]
+    import __builtin__
+    return [__builtin__.max(ts, key=lambda tp: tp[1])]
 
 ################################################################################
