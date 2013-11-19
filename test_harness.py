@@ -3,6 +3,7 @@ import data_loader
 import matplotlib.pyplot as pyplot
 import utils
 import datetime
+import data_retrieval
 
 ################################################################################
 
@@ -21,6 +22,22 @@ def line_plot(dates, values):
     figure.autofmt_xdate()
     pyplot.show()
 
+################################################################################
+
+def get_series():
+    args = {
+            'symbol': 'IBM', 
+            'start': datetime.datetime(2003, 11, 11), 
+            'end': datetime.datetime(2013, 11, 11)
+            }
+
+    loader = 'download_yahoo_timeseries'
+    id = 'IBM_YAHOO_20131111'
+
+    ts = data_retrieval.get_time_series(id, loader, args)
+    dates, values = zip(*ts[args['symbol']][data_loader.TIMESERIES])
+    line_plot(dates, values)
+    
 ################################################################################
 
 def plot_treasuries():
@@ -79,7 +96,8 @@ if __name__ == '__main__':
     #         'IBM', 
     #         datetime.datetime(2003, 11, 11), 
     #         datetime.datetime(2013, 11, 11))
-    generate_test_transform_google_timeseries()
+    # generate_test_transform_google_timeseries()
     # generate_test_transform_yahoo_timeseries()
+    get_series()
 
 ################################################################################

@@ -5,7 +5,9 @@ import math
 import datetime
 import timeseries
 import data_loader
+import data_retrieval
 import tempfile
+import config
 
 ################################################################################
 
@@ -286,6 +288,67 @@ class TestDataLoaderFunctions(unittest.TestCase):
         base_result = utils.deserialise_obj(test_result)
 
         self.assertEqual(result, base_result)
+
+################################################################################
+
+class TestDataRetrievalFunctions(unittest.TestCase):
+
+    # Set a cache folder for the unit test and a cache file that we
+    # can remove in tearDown in case the test fails prior to clearing 
+    # the cache
+    cache_folder = './testdata/cache'
+    cache_id = 'test_id_for_tearDown'
+
+    def setUp(self):
+        self.restore_cache_folder = config.CACHE_FOLDER
+        config.CACHE_FOLDER = self.cache_folder
+
+    def tearDown(self):
+        cache_file = data_retrieval.get_cache_filename(self.cache_id)
+        if os.path.exists(cache_file):
+            os.remove(cache_file)
+        config.CACHE_FOLDER = self.restore_cache_folder
+
+    def test_get_time_series(self):
+        '''
+        End to end test of the following functions
+            get_from_cache
+            get_time_series
+            clear_cache
+        '''
+        id = self.cache_id 
+        symbol = 'TGTT'
+        loader = 'download_mock_series'
+        loader_args = { 
+                'symbol': symbol, 
+                'start': datetime.datetime(2012, 11, 11),
+                'end': datetime.datetime(2013, 11, 11)
+                }
+
+        # Check the item isn't in the cache to start with
+        # If the test fails here, just delete the file in the cache folder
+        self.assertFalse(data_retrieval.get_from_cache(id))
+        
+        # Retrieve the series
+        result = data_retrieval.get_time_series(id, loader, loader_args)
+
+        # Check the contents look ok: expect that the loader args are set
+        # as metadata on the time series, but check 
+        # data_loader.download_mock_series for how the test result is 
+        # actually created
+        self.assertEqual(loader_args, 
+                result[symbol][data_loader.METADATA])
+
+        # Check we can now retrieve the id from the cache
+        cached_result = data_retrieval.get_from_cache(id)
+        self.assertEqual(loader_args, 
+                cached_result[symbol][data_loader.METADATA])
+        
+        # Remove it from the cache
+        data_retrieval.clear_cache(id)
+
+        # Check it's gone
+        self.assertFalse(data_retrieval.get_from_cache(id))
 
 ################################################################################
 

@@ -265,6 +265,22 @@ def transform_treasuries_data(data):
 
 ################################################################################
 
+def download_mock_series(symbol, start, end):
+    '''
+    Mock query for unit testing - just returns the input args as metadata
+    '''
+    return { symbol: {
+        TIMESERIES: [],
+        METADATA: {
+            'symbol': symbol,
+            'start': start,
+            'end': end
+            }
+        }
+        }
+
+################################################################################
+
 if __name__ == '__main__':
     logging.basicConfig(level='DEBUG')
     import utils
