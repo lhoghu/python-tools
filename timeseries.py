@@ -77,3 +77,15 @@ def max(ts):
     return [__builtin__.max(ts, key=lambda tp: tp[1])]
 
 ################################################################################
+
+def common_dates(x, y):
+    '''
+    Takes two input time series objects and returns a list of tuples, 
+    [(date1, x1, y1),...] on a the intersection of the date ranges
+    '''
+    xd = dict(x)
+    yd = dict(y)
+    dates = set(xd.keys()) & set(yd.keys())
+    return [(d, xd[d], yd[d]) for d in sorted(dates)]
+
+################################################################################

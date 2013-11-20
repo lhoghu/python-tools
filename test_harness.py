@@ -4,13 +4,15 @@ import matplotlib.pyplot as pyplot
 import utils
 import datetime
 import data_retrieval
+import algorithms
+import timeseries
 
 ################################################################################
 
 def get_treasuries_series(series):
     data = data_loader.download_treasuries()
-    timeseries = data[series][data_loader.TIMESERIES]
-    cleaned = [(date, value) for date, value in timeseries if value != 'ND']
+    ts = data[series][data_loader.TIMESERIES]
+    cleaned = [(date, value) for date, value in ts if value != 'ND']
     return zip(*cleaned)
 
 ################################################################################
@@ -19,6 +21,44 @@ def line_plot(dates, values):
 
     figure, axes = pyplot.subplots()
     axes.plot_date(dates, values, linestyle='-', marker='')
+    figure.autofmt_xdate()
+    pyplot.show()
+
+################################################################################
+
+def linear_reg():
+    ibm_id = 'IBM_YAHOO_20131111'
+    ibm_data = data_retrieval.get_time_series(ibm_id, 
+            'download_yahoo_timeseries', 
+            {
+                'symbol': 'IBM', 
+                'start': datetime.datetime(2003, 11, 11), 
+                'end': datetime.datetime(2013, 11, 11)
+            })
+
+    spx_id = 'SPX_YAHOO_20131111'
+    spx_data = data_retrieval.get_time_series(spx_id, 
+            'download_yahoo_timeseries', 
+            {
+                'symbol': '^GSPC', 
+                'start': datetime.datetime(2003, 11, 11), 
+                'end': datetime.datetime(2013, 11, 11)
+            })
+
+    series = zip(*timeseries.common_dates(
+            ibm_data['IBM'][data_loader.TIMESERIES], 
+            spx_data['^GSPC'][data_loader.TIMESERIES]))
+
+    ibm = [float(val) for val in series[1]]
+    spx = [float(val) for val in series[2]]
+    slope, intercept, r_value, _, _ = algorithms.linreg(ibm, spx) 
+    print('Beta: {0}'.format(intercept))
+    print('Slope: {0}'.format(slope))
+    print('RSq: {0}'.format(r_value**2))
+
+    figure, axes = pyplot.subplots()
+    axes.plot_date(series[0], ibm, linestyle='-', marker='')
+    axes.plot_date(series[0], spx, linestyle='-', marker='')
     figure.autofmt_xdate()
     pyplot.show()
 
@@ -98,6 +138,7 @@ if __name__ == '__main__':
     #         datetime.datetime(2013, 11, 11))
     # generate_test_transform_google_timeseries()
     # generate_test_transform_yahoo_timeseries()
-    get_series()
+    # get_series()
+    linear_reg()
 
 ################################################################################

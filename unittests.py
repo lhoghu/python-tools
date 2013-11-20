@@ -235,6 +235,42 @@ class TestTimeseriesFunctions(unittest.TestCase):
         expected_result = [(datetime.datetime(2013, 11, 7), 6.32)]
         self.assertEqual(ts_max, expected_result)
 
+    def test_common_dates(self):
+        '''
+        Test the common_dates correctly returns an ordered result on the
+        date intersection
+        '''
+        x = [
+                (datetime.datetime(2013, 10, 31), 4.53),
+                (datetime.datetime(2013, 11, 4), -2.89),
+                (datetime.datetime(2013, 11, 5), -0.18),
+                (datetime.datetime(2013, 11, 6), 1.36),
+                (datetime.datetime(2013, 11, 7), 6.32),
+                (datetime.datetime(2013, 11, 12), -6.30)
+                ]
+        # Deliberately put dates slightly out of order
+        y = [
+                (datetime.datetime(2013, 10, 31), 8.53),
+                (datetime.datetime(2013, 11, 1), -9.87),
+                (datetime.datetime(2013, 11, 6), 11.36),
+                (datetime.datetime(2013, 11, 5), 1.18),
+                (datetime.datetime(2013, 11, 7), -6.32),
+                (datetime.datetime(2013, 11, 8), 3.51),
+                (datetime.datetime(2013, 11, 12), -2.30),
+                (datetime.datetime(2013, 11, 13), 3.51)
+                ]
+
+        merged = timeseries.common_dates(x, y)
+
+        expected_result = [
+                (datetime.datetime(2013, 10, 31), 4.53, 8.53),
+                (datetime.datetime(2013, 11, 5), -0.18, 1.18),
+                (datetime.datetime(2013, 11, 6), 1.36, 11.36),
+                (datetime.datetime(2013, 11, 7), 6.32, -6.32),
+                (datetime.datetime(2013, 11, 12), -6.30, -2.30)
+                ]
+        self.assertEqual(merged, expected_result)
+
 ################################################################################
 
 class TestDataLoaderFunctions(unittest.TestCase):
