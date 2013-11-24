@@ -6,6 +6,7 @@ import datetime
 import data_retrieval
 import algorithms
 import timeseries
+import charts
 
 ################################################################################
 
@@ -56,11 +57,9 @@ def linear_reg():
     print('Slope: {0}'.format(slope))
     print('RSq: {0}'.format(r_value**2))
 
-    figure, axes = pyplot.subplots()
-    axes.plot_date(series[0], ibm, linestyle='-', marker='')
-    axes.plot_date(series[0], spx, linestyle='-', marker='')
-    figure.autofmt_xdate()
-    pyplot.show()
+    series_for_charting = [('IBM', ibm), ('SPX', spx)]
+    charts.line(series[0], series_for_charting)
+    charts.scatter(series_for_charting)
 
 ################################################################################
 
