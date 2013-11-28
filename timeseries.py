@@ -31,8 +31,7 @@ def mean(ts):
     Returns a time series object, with a date index given by the last time point
     and the value equal to the mean of the value elements
     '''
-    mean = reduce(lambda (sx, sy), (x, y): (x, sy + y), ts, (None, 0.0))
-    return [(mean[0], mean[1]/len(ts))]
+    return [(ts[-1][0], sum(v for _, v in ts)/len(ts))]
 
 ################################################################################
 
@@ -42,10 +41,8 @@ def sd(ts):
     Returns a time series object, with a date index given by the last time point
     and the value equal to the standard deviation of the value elements
     '''
-    ave = mean(ts)[0][1]
-
-    var = reduce(lambda (sx, sy), (x, y): (x, sy + (y - ave)**2), ts, (None, 0.0))
-    return [(var[0], (var[1] / len(ts))**0.5)]
+    _, ave = mean(ts)[0]
+    return [(ts[-1][0], (sum((v - ave)**2 for _, v in ts) / len(ts))**0.5)]
 
 ################################################################################
 
@@ -53,10 +50,11 @@ def zscore(ts):
     '''
     Return the zscore of the input series as a time series object
     '''
-
-    ave = mean(ts)[0][1]
-    std = sd(ts)[0][1]
-    return [(ts[-1][0], (ts[-1][1] - ave) / std)]
+    # Not reusing mean and sd to avoid recomputation of mean
+    ave = sum(v for _, v in ts)/len(ts)
+    std = (sum((v - ave)**2 for _, v in ts) / len(ts))**0.5
+    dte, val = ts[-1]
+    return [(dte, (val - ave) / std)]
 
 ################################################################################
 
