@@ -44,7 +44,7 @@ def log_time(f):
         logging.debug('{0}: {1} ms'.format(f.func_name, t.interval*1000.0))
         return res
 
-    log_time.__name__ = f.__name__
+    wrap.__name__ = f.__name__
     return wrap
     
 ################################################################################
