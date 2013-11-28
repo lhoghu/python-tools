@@ -1,6 +1,7 @@
 import pickle
 import logging
 import datetime
+import time
 
 ################################################################################
 
@@ -33,6 +34,29 @@ def log_entry(f):
                     
     log_entry.__name__ = f.__name__ 
     return log_entry
+
+def log_time(f):
+    '''
+    Decorator to time the function call
+    '''
+    def wrap(*args):
+        with Timer() as t: res = f(*args)
+        logging.debug('{0}: {1} ms'.format(f.func_name, t.interval*1000.0))
+        return res
+
+    log_time.__name__ = f.__name__
+    return wrap
+    
+################################################################################
+
+class Timer:    
+    def __enter__(self):
+        self.start = time.clock()
+        return self
+
+    def __exit__(self, *args):
+        self.end = time.clock()
+        self.interval = self.end - self.start
 
 ################################################################################
 

@@ -66,34 +66,18 @@ def time_loops():
     import random
 
     @utils.log_time
-    def gen_tuple_series(n):
+    def gen_series(n):
         for i in range(n):
             yield random.randrange(0, 100), random.uniform(0, 100)
 
-    @utils.log_time
-    def gen_series(n):
-        for i in range(n):
-            yield random.uniform(0, 100)
-
-    # Test 1 - note this version actually returns the tuple that contains
-    # the min
-    ts = gen_tuple_series(1000000)
+    # Test 1
+    ts = gen_series(1000000)
     with utils.Timer() as t1: min(ts, key=lambda (_, v): v)
     print('Using key: {0} ms'.format(t1.interval*1000.0))
 
-    # Test 2 - this version returns only the min value
-    ts = gen_tuple_series(1000000)
+    # Test 2
+    ts = gen_series(1000000)
     with utils.Timer() as t2: min(v for _, v in ts)
-    print('Using genexp: {0} ms'.format(t2.interval*1000.0))
-
-    # Test 3 - repeat the test where both return the same object
-    ts = gen_series(1000000)
-    with utils.Timer() as t1: min(ts)
-    print('Raw min: {0} ms'.format(t1.interval*1000.0))
-
-    # Test 4
-    ts = gen_series(1000000)
-    with utils.Timer() as t2: min(v for v in ts)
     print('Using genexp: {0} ms'.format(t2.interval*1000.0))
 
 ################################################################################
