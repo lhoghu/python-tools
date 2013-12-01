@@ -72,6 +72,14 @@ class InfoPanel():
         self.parent = parent
 
         self.header = wx.StaticBox(container, -1, 'Series statistics:')
+        
+        self.current_label = wx.StaticText(container, -1, 'Current:')
+        self.min_val_label = wx.StaticText(container, -1, 'Min:')
+        self.max_val_label = wx.StaticText(container, -1, 'Max:')
+        self.ave_label = wx.StaticText(container, -1, 'Average:')
+        self.sd_label = wx.StaticText(container, -1, 'Std dev:')
+        self.zscore_label = wx.StaticText(container, -1, 'Z-Score:')
+
         self.current = wx.StaticText(container)
         self.min_val = wx.StaticText(container)
         self.max_val = wx.StaticText(container)
@@ -82,32 +90,42 @@ class InfoPanel():
     def layout(self):
         sizer = wx.StaticBoxSizer(self.header, wx.VERTICAL)
 
-        flags = wx.ALIGN_LEFT | wx.ALL | wx.ALIGN_CENTER_VERTICAL
+        flags = wx.ALIGN_LEFT
         
         sizer.AddSpacer(self.parent.GetFont().GetPointSize())
-        sizer.Add(self.current, flag=flags)
-        sizer.Add(self.min_val, flag=flags)
-        sizer.Add(self.max_val, flag=flags)
-        sizer.Add(self.ave, flag=flags)
-        sizer.Add(self.sd, flag=flags)
-        sizer.Add(self.zscore, flag=flags)
+        stats_grid = wx.FlexGridSizer(cols=2, hgap=5)
+        stats_grid.Add(self.current_label, flag=flags)
+        stats_grid.Add(self.current, flag=wx.EXPAND)
+        stats_grid.Add(self.min_val_label, flag=flags)
+        stats_grid.Add(self.min_val, flag=wx.EXPAND)
+        stats_grid.Add(self.max_val_label, flag=flags)
+        stats_grid.Add(self.max_val, flag=wx.EXPAND)
+        stats_grid.Add(self.ave_label, flag=flags)
+        stats_grid.Add(self.ave, flag=wx.EXPAND)
+        stats_grid.Add(self.sd_label, flag=flags)
+        stats_grid.Add(self.sd, flag=wx.EXPAND)
+        stats_grid.Add(self.zscore_label, flag=flags)
+        stats_grid.Add(self.zscore, flag=wx.EXPAND)
+
+        stats_grid.AddGrowableCol(1, 1)
+        sizer.Add(stats_grid, flag=flags)
 
         return sizer
 
     def update(self, data, config):
         ts = sorted(zip(data['dates'], data['values']))
-        self.current.SetLabel('Current: {0}'.format(ts[-1][1]))
+        self.current.SetLabel('{0}'.format(ts[-1][1]))
 
         min = timeseries.min(ts)[0]
-        self.min_val.SetLabel('Min: {0} ({1})'.
+        self.min_val.SetLabel('{0} ({1})'.
                 format(min[1], min[0].strftime('%Y-%m-%d')))
         max = timeseries.max(ts)[0]
-        self.max_val.SetLabel('Max: {0} ({1})'.
+        self.max_val.SetLabel('{0} ({1})'.
                 format(max[1], max[0].strftime('%Y-%m-%d')))
 
-        self.ave.SetLabel('Ave: {0:.2f}'.format(timeseries.mean(ts)[0][1]))
-        self.sd.SetLabel('Std dev: {0:.2f}'.format(timeseries.sd(ts)[0][1]))
-        self.zscore.SetLabel('Z-Score: {0:.2f}'.
+        self.ave.SetLabel('{0:.2f}'.format(timeseries.mean(ts)[0][1]))
+        self.sd.SetLabel('{0:.2f}'.format(timeseries.sd(ts)[0][1]))
+        self.zscore.SetLabel('{0:.2f}'.
                 format(timeseries.zscore(ts)[0][1]))
 
 ################################################################################
