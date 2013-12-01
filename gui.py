@@ -7,6 +7,7 @@ import logging
 import datetime
 import data_retrieval
 import data_loader
+import timeseries
 
 ################################################################################
 
@@ -61,6 +62,54 @@ class ApplicationMenu(wx.MenuBar):
         # Close the application
         self.parent.Close(True)
         
+################################################################################
+
+class InfoPanel():
+
+    def __init__(self, parent, container, config):
+        logging.info('Creating the info panel')
+
+        self.parent = parent
+
+        self.header = wx.StaticBox(container, -1, 'Series statistics:')
+        self.current = wx.StaticText(container)
+        self.min_val = wx.StaticText(container)
+        self.max_val = wx.StaticText(container)
+        self.ave = wx.StaticText(container)
+        self.sd = wx.StaticText(container)
+        self.zscore = wx.StaticText(container)
+
+    def layout(self):
+        sizer = wx.StaticBoxSizer(self.header, wx.VERTICAL)
+
+        flags = wx.ALIGN_LEFT | wx.ALL | wx.ALIGN_CENTER_VERTICAL
+        
+        sizer.AddSpacer(self.parent.GetFont().GetPointSize())
+        sizer.Add(self.current, flag=flags)
+        sizer.Add(self.min_val, flag=flags)
+        sizer.Add(self.max_val, flag=flags)
+        sizer.Add(self.ave, flag=flags)
+        sizer.Add(self.sd, flag=flags)
+        sizer.Add(self.zscore, flag=flags)
+
+        return sizer
+
+    def update(self, data, config):
+        ts = sorted(zip(data['dates'], data['values']))
+        self.current.SetLabel('Current: {0}'.format(ts[-1][1]))
+
+        min = timeseries.min(ts)[0]
+        self.min_val.SetLabel('Min: {0} ({1})'.
+                format(min[1], min[0].strftime('%Y-%m-%d')))
+        max = timeseries.max(ts)[0]
+        self.max_val.SetLabel('Max: {0} ({1})'.
+                format(max[1], max[0].strftime('%Y-%m-%d')))
+
+        self.ave.SetLabel('Ave: {0:.2f}'.format(timeseries.mean(ts)[0][1]))
+        self.sd.SetLabel('Std dev: {0:.2f}'.format(timeseries.sd(ts)[0][1]))
+        self.zscore.SetLabel('Z-Score: {0:.2f}'.
+                format(timeseries.zscore(ts)[0][1]))
+
 ################################################################################
 
 class ControlPanel():
@@ -118,6 +167,7 @@ class ControlPanel():
 
         data = get_data(self.parent.config.date, self.parent.config.symbol)
         self.parent.chart.draw(data, self.parent.config)
+        self.parent.chart_info.update(data, self.parent.config)
 
     def on_redraw_button(self, event):
         '''
@@ -148,7 +198,7 @@ def get_data(date, symbol):
 
     ts = data_retrieval.get_time_series(id, loader, args)
     dates, values = zip(*ts[args['symbol']][data_loader.TIMESERIES])
-    return { 'dates': dates, 'values': values } 
+    return { 'dates': dates, 'values': [float(v) for v in values] } 
 
 ################################################################################
 
@@ -215,18 +265,21 @@ class ApplicationFrame(wx.Frame):
         menu = ApplicationMenu(self)
         self.SetMenuBar(menu)  
         
-        # Create the panel that contains the chart. For now the chart
-        # and control panel both attach to this panel, but would like
-        # to factor those into separate panel objects eventually
+        # Create the panel that contains the chart
         self.panel = wx.Panel(self)
-
+        # self.chart_panel = wx.Panel(self)
         self.chart = ChartCanvas(self.panel, self.config)
-        self.control_panel = ControlPanel(self, self.panel, self.config)
+        self.chart_info = InfoPanel(self, self.panel, self.config)
+        chart_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        chart_sizer.Add(self.chart.layout(), 3, wx.EXPAND | wx.ALL)
+        chart_sizer.Add(self.chart_info.layout(), 1, wx.EXPAND | wx.ALL, border=5)
+        # self.chart_panel.SetSizerAndFit(chart_sizer)
 
-        # Use sizers to arrange the frame elements
+        # Create a panel for the user input
+        self.control_panel = ControlPanel(self, self.panel, self.config)
         sizer = wx.BoxSizer(wx.VERTICAL)
-        sizer.Add(self.chart.layout(), 1, wx.EXPAND | wx.ALL)
-        sizer.Add(self.control_panel.layout(), 0, wx.ALIGN_LEFT | wx.TOP)
+        sizer.Add(self.control_panel.layout(), 0, wx.ALIGN_CENTER | wx.TOP)
+        sizer.Add(chart_sizer, 1, wx.EXPAND | wx.ALL)
         self.panel.SetSizerAndFit(sizer)
 
         # self.CreateStatusBar()
@@ -234,6 +287,7 @@ class ApplicationFrame(wx.Frame):
         # Draw an initial plot on startup
         data = get_data(self.config.date, self.config.symbol)
         self.chart.draw(data, self.config)
+        self.chart_info.update(data, self.config)
 
 ################################################################################
 
