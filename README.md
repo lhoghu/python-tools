@@ -1,8 +1,14 @@
-python-tools
-============
+# python-tools
 
-Requires matplotlib, wxPython
+A simple python library to collect financial time series data from yahoo/google/..., run the data through a trading algortihm and view the output in a gui.
 
-On debian systems run the setup.sh script (it uses apt-get) to install the dependencies  
+## Requirements
+
+Python version: 2.7  
+Packages: matplotlib, wxPython, urllib2, pickle.
+
+On debian systems run the setup.sh script (it uses apt-get) to install the dependencies:  
+```
 $ chmod +755 setup.sh  
-$ ./Setup.sh
+$ ./Setup.sh  
+```
