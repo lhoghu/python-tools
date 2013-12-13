@@ -212,9 +212,8 @@ def get_data(date, symbol):
         }
 
     loader = 'download_yahoo_timeseries'
-    id = '{symbol}_YAHOO_{start}_{end}'.format(**args)
 
-    ts = data_retrieval.get_time_series(id, loader, args)
+    ts = data_retrieval.get_time_series(loader, args)
     dates, values = zip(*ts[args['symbol']][data_loader.TIMESERIES])
     return { 'dates': dates, 'values': [float(v) for v in values] } 
 
