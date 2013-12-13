@@ -333,7 +333,7 @@ class TestDataRetrievalFunctions(unittest.TestCase):
     # can remove in tearDown in case the test fails prior to clearing 
     # the cache
     cache_folder = './testdata/cache'
-    cache_id = 'test_id_for_tearDown'
+    cache_id = ''
 
     def setUp(self):
         self.restore_cache_folder = config.CACHE_FOLDER
@@ -352,7 +352,6 @@ class TestDataRetrievalFunctions(unittest.TestCase):
             get_time_series
             clear_cache
         '''
-        id = self.cache_id 
         symbol = 'TGTT'
         loader = 'download_mock_series'
         loader_args = { 
@@ -361,12 +360,17 @@ class TestDataRetrievalFunctions(unittest.TestCase):
                 'end': datetime.datetime(2013, 11, 11)
                 }
 
+        # Get the id used to store the file in the cache and assign it
+        # so we can delete it in tearDown
+        id = data_retrieval.get_id(loader, loader_args)
+        self.cache_file = id
+
         # Check the item isn't in the cache to start with
         # If the test fails here, just delete the file in the cache folder
         self.assertFalse(data_retrieval.get_from_cache(id))
         
         # Retrieve the series
-        result = data_retrieval.get_time_series(id, loader, loader_args)
+        result = data_retrieval.get_time_series(loader, loader_args)
 
         # Check the contents look ok: expect that the loader args are set
         # as metadata on the time series, but check 

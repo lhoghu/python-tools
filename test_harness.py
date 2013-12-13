@@ -27,8 +27,7 @@ def line_plot(dates, values):
 ################################################################################
 
 def linear_reg():
-    ibm_id = 'IBM_YAHOO_20131111'
-    ibm_data = data_retrieval.get_time_series(ibm_id, 
+    ibm_data = data_retrieval.get_time_series(
             'download_yahoo_timeseries', 
             {
                 'symbol': 'IBM', 
@@ -36,8 +35,7 @@ def linear_reg():
                 'end': datetime.datetime(2013, 11, 11)
             })
 
-    spx_id = 'SPX_YAHOO_20131111'
-    spx_data = data_retrieval.get_time_series(spx_id, 
+    spx_data = data_retrieval.get_time_series(
             'download_yahoo_timeseries', 
             {
                 'symbol': '^GSPC', 
@@ -106,9 +104,8 @@ def get_series():
             }
 
     loader = 'download_yahoo_timeseries'
-    id = 'IBM_YAHOO_20131111'
 
-    ts = data_retrieval.get_time_series(id, loader, args)
+    ts = data_retrieval.get_time_series(loader, args)
     dates, values = zip(*ts[args['symbol']][data_loader.TIMESERIES])
     line_plot(dates, values)
     
@@ -173,7 +170,7 @@ if __name__ == '__main__':
     # generate_test_transform_google_timeseries()
     # generate_test_transform_yahoo_timeseries()
     # get_series()
-    # linear_reg()
-    time_loops()
+    linear_reg()
+    # time_loops()
 
 ################################################################################

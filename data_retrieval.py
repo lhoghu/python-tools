@@ -2,6 +2,7 @@ import os
 import utils
 import data_loader
 import config
+import hashlib
 
 ################################################################################
 
@@ -43,13 +44,26 @@ def clear_cache(id=None):
 
 ################################################################################
 
-def get_time_series(id, loader, loader_args):
+def get_id(loader, loader_args):
+    '''
+    Create the hash of the loader function name and its arguments
+    '''
+    return hashlib.sha1('{0}{1}'.format(loader, loader_args)).hexdigest()
+
+################################################################################
+
+def get_time_series(loader, loader_args):
     '''
     Interrogate the cache for the requested series
     If it doesn't exit, call the loader function from the data_loader module
     with the dictionary args and add it to the cache
     '''
 
+    # For now we just get back from the cache based on whether the exact
+    # same call has been made before
+    # TODO add support to interrogate a db for whether the data can be found
+    # in the cache
+    id = get_id(loader, loader_args)
     ts = get_from_cache(id)
 
     if not ts:
