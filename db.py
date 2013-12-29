@@ -52,6 +52,9 @@ class MongoClient():
         self.client = pymongo.MongoClient(MONGO_HOST, config.MONGOD_PORT)
         self.db = self.client.MONGO_TIMESERIES_DB 
 
+    def __del__(self):
+        self.client.disconnect()
+
     def get_id(self, loader, loader_args):
         '''
         Return the object id associated with a document if it
