@@ -8,6 +8,7 @@ import data_loader
 import data_retrieval
 import tempfile
 import config
+import db
 
 ################################################################################
 
@@ -363,7 +364,7 @@ class TestDataRetrievalFunctions(unittest.TestCase):
         # Get the id used to store the file in the cache and assign it
         # so we can delete it in tearDown
         id = data_retrieval.get_id(loader, loader_args)
-        self.cache_file = id
+        self.cache_id = id
 
         # Check the item isn't in the cache to start with
         # If the test fails here, just delete the file in the cache folder
@@ -389,6 +390,98 @@ class TestDataRetrievalFunctions(unittest.TestCase):
 
         # Check it's gone
         self.assertFalse(data_retrieval.get_from_cache(id))
+
+class TestMongoDataRetrievalFunctions(unittest.TestCase):
+
+    mongo_folder = './testdata/mongo'
+    mongo_db = 'mongo'
+    mongo_service = None
+    cache_id = ''
+
+    def setUp(self):
+        self.restore_mongo_folder = config.MONGO_FOLDER
+        config.MONGO_FOLDER = self.mongo_folder
+
+        self.restore_db = config.DB
+        config.DB = self.mongo_db
+
+        self.mongo_service = db.MongoService()
+        self.mongo_service.start()
+        import time
+        time.sleep(1)
+
+    def tearDown(self):
+        db_client = data_retrieval.get_db()
+
+        import bson.objectid
+        db_client.db[config.MONGO_TIMESERIES_DB]['download_mock_series'].remove(
+                {'_id': bson.objectid.ObjectId(self.cache_id)})
+
+        self.mongo_service.stop()
+
+        cache_file = data_retrieval.get_cache_filename(self.cache_id)
+        if os.path.exists(cache_file):
+            os.remove(cache_file)
+        config.MONGO_FOLDER = self.restore_mongo_folder
+        config.MONGO_DB = self.restore_db
+
+    def test_get_time_series_mongo(self):
+        '''
+        End to end test of the following functions
+            get_from_cache
+            get_time_series
+            clear_cache
+        '''
+        symbol = 'TGTT'
+        loader = 'download_mock_series'
+        loader_args = { 
+                'symbol': symbol, 
+                'start': datetime.datetime(2012, 11, 11),
+                'end': datetime.datetime(2013, 11, 11)
+                }
+
+        # Check we can load a db client instance
+        db_client = data_retrieval.get_db()
+        self.assertIsNotNone(db_client)
+        
+        # Check the id is not in the db to start with
+        id = data_retrieval.get_id(loader, loader_args)
+        if id is not None:
+            db_client.remove(loader, loader_args)
+        
+        id = data_retrieval.get_id(loader, loader_args)
+        self.assertIsNone(id)
+
+        # Retrieve the series
+        result = data_retrieval.get_time_series(loader, loader_args)
+
+        # Check the id now exists in the db
+        id = data_retrieval.get_id(loader, loader_args)
+        self.assertIsNotNone(id)
+        self.cache_id = id
+
+        # Check the contents look ok: expect that the loader args are set
+        # as metadata on the time series, but check 
+        # data_loader.download_mock_series for how the test result is 
+        # actually created
+        self.assertEqual(loader_args, 
+                result[symbol][data_loader.METADATA])
+
+        # Check we can now retrieve the id from the cache
+        cached_result = data_retrieval.get_from_cache(id)
+        self.assertEqual(loader_args, 
+                cached_result[symbol][data_loader.METADATA])
+        
+        # Remove it from the cache
+        data_retrieval.clear_cache(id)
+
+        # Check it's gone from the cache...
+        self.assertFalse(data_retrieval.get_from_cache(id))
+
+        # ... and the db
+        db_client.remove(loader, loader_args)
+        id = data_retrieval.get_id(loader, loader_args)
+        self.assertIsNone(id)
 
 ################################################################################
 
