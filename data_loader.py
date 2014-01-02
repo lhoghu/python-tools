@@ -1,3 +1,12 @@
+from win32com.client import DispatchWithEvents
+from win32com.client import constants
+from win32com.client import CastTo
+
+from pythoncom import PumpWaitingMessages
+from pythoncom import Empty
+from pythoncom import Missing
+from pythoncom import com_error
+
 import os
 import logging
 from urllib import urlencode as urlencode
@@ -6,6 +15,14 @@ import csv
 import tempfile
 import datetime
 import re
+
+################################################################################
+# BBG global async variables
+pending_requests = 0
+max_pending_requests = 50
+session = None
+rfd = None
+results = list()
 
 ################################################################################
 
@@ -35,6 +52,228 @@ google_config = {
         }
 
 ################################################################################
+
+class SessionEvents(object):
+    def OnProcessEvent(self, event_object):
+        global pending_requests
+
+        # obtain Event object interface
+        event = CastTo(event_object, 'Event')
+        
+        if event.EventType == constants.RESPONSE: 
+            pending_requests = pending_requests - 1
+            process_event(event)
+            self.continueLoop = False
+            
+        elif event.EventType == constants.PARTIAL_RESPONSE:
+            process_event(event)
+        
+        else:
+             process_other_event(event)
+
+################################################################################
+
+def download_bbg_timeseries(symbol, start, end, field):
+    if field == 'INDX_MWEIGHT_HIST':
+        return download_bbg_refdatarequest(symbol, start, end, field)
+    else:
+        return download_bbg_historicaldatarequest(symbol, start, end, field)
+
+################################################################################
+
+def init_bbg_session():
+    global session
+    global rfd
+
+    if session is None:
+        session = DispatchWithEvents('blpapicom.ProviderSession.1', SessionEvents)
+    
+        # Start a Session
+        session.Start()
+
+        if not session.OpenService('//blp/refdata'):
+            print 'Failed to opent service'
+            raise Exception
+        
+        # event loop
+        session.continueLoop = True
+        rfd = session.GetService('//blp/refdata')
+
+################################################################################
+
+def download_bbg_historicaldatarequest(symbol, start, end, field):
+    global pending_requests
+    global max_pending_requests
+    global results
+    global session
+    global rfd
+
+    results = list()
+
+    start_date = datetime.datetime(1960,1,1)
+    end_date = datetime.datetime.today() - datetime.timedelta(1)
+
+    bbgdtformat = '%Y%m%d'
+
+    init_bbg_session()
+
+    # for each index file
+    request = rfd.CreateRequest("HistoricalDataRequest")
+    request.GetElement("fields").AppendValue(field)
+    request.Set("periodicityAdjustment", "ACTUAL")
+    request.Set("periodicitySelection", "DAILY")
+    request.Set("startDate", start_date.strftime(bbgdtformat))
+    request.Set("endDate", end_date.strftime(bbgdtformat))
+#                    request.set("maxDataPoints", 100)
+
+    request.GetElement("securities").AppendValue(symbol)
+
+        # send request
+    cid = session.SendRequest(request)
+    pending_requests = pending_requests + 1
+
+    while pending_requests > 0:
+        PumpWaitingMessages()
+
+    return results
+    
+################################################################################
+
+def download_bbg_refdatarequest(symbol, start, end, field): 
+    global pending_requests
+    global max_pending_requests
+    global results
+    global session
+    global rfd
+
+    results = list();
+
+    bbgdtformat = '%Y%m%d'
+
+    init_bbg_session()
+
+    day_count = (end - start).days + 1
+        
+    # event loop
+    session.continueLoop = True
+
+    for single_date in (start + datetime.timedelta(n) for n in range(day_count)):
+        
+        request = rfd.CreateRequest('ReferenceDataRequest')
+
+        # configure historical request
+        request.GetElement('securities').AppendValue(symbol)
+        
+        request.GetElement('fields').AppendValue(field)
+        request.GetElement('fields').AppendValue('END_DATE_OVERRIDE')
+        override = request.GetElement('overrides').AppendElment()
+        override.SetElement('fieldId', 'END_DATE_OVERRIDE')
+        override.SetElement('value', single_date.strftime(bbgdtformat))
+
+        # send request
+        cid = session.SendRequest(request)
+        print "Sent " + single_date.strftime(bbgdtformat) + symbol
+
+        pending_requests = pending_requests + 1
+        while pending_requests >= max_pending_requests:
+            PumpWaitingMessages()
+      
+    
+    while pending_requests > 0:
+        PumpWaitingMessages()
+        
+    return results;
+
+################################################################################
+
+def process_other_event(event):
+    
+    iter = event.CreateMessageIterator()
+    while iter.Next():
+
+        msg = iter.Message
+        print 'messageType=%s' % msg.MessageTypeAsString
+
+################################################################################
+
+def process_event(event):
+    iter = event.CreateMessageIterator()
+    while iter.Next():
+        msg = iter.Message
+        if msg.MessageTypeAsString == 'HistoricalDataResponse':
+            process_historicaldataresponse(msg)
+        elif msg.MessageTypeAsString == 'ReferenceDataResponse':
+            process_referencedataresponse(msg)
+        else:
+            raise 'unknown message type <' + msg.MessageTypeAsString + '>'
+
+################################################################################
+
+def process_referencedataresponse(msg):
+    global results
+
+    security_data = msg.GetElement('securityData')
+#   print("num securities" + str(security_data.NumValues))
+    if security_data.NumValues > 1:
+        raise 'not supporting multiple symbols at once for bbg'
+
+    for i in range(security_data.NumValues):
+        idx_equity_list = list()
+#            requesttime = datetime.datetime(1900,1,1)
+        security = security_data.GetValue(i)
+        security_name = security.GetElement('security')
+        field_data = security.GetElement('fieldData')
+
+#            print(str(security_name) + str(field_data.NumElements))
+        
+        for i in range(field_data.NumElements):
+            field = field_data.GetElement(i)
+#                print("field" + str(field) + str(field.NumValues))
+            if field.Datatype == 15:
+                for j in range(field.NumValues): 
+                    bulkElement = field.GetValue(j)   
+                    for k in range(bulkElement.NumElements):
+                        elem = bulkElement.GetElement(k)
+                        if elem.Name == "Index Member":
+                            equity_name = elem.Value
+                            idx_equity_list.append(equity_name)         
+#                                print elem.Name, elem.Value
+            elif field.Name == "END_DATE_OVERRIDE":
+#                    print str(field.Value)
+                requesttime = datetime.datetime.strptime(str(field.Value), '%m/%d/%y %H:%M:%S')
+                if requesttime > datetime.datetime.today():
+                    requesttime = datetime.datetime(requesttime.year-100, requesttime.month, requesttime.day)
+        print "found <" + str(len(idx_equity_list)) + "> elts for " + str(requesttime) + " " + str(security_name)
+
+        results.append( (requesttime, idx_equity_list) )
+
+    return results
+
+################################################################################
+
+def process_historicaldataresponse(msg):
+    global results
+
+    results = list()
+    hist_field = '';
+    if msg.MessageTypeAsString == "HistoricalDataResponse":
+        security_data = msg.GetElement('securityData')
+#   print("num securities:" + str(security_data.NumValues))
+        security_name = str(security_data.GetElement('security'))
+        field_data = security_data.GetElement('fieldData')            
+#        print security_name + ", fields #" + str(field_data.NumValues)
+        for i in range(field_data.NumValues):
+            fields = field_data.GetValue(i)
+            for j in range(fields.NumElements):    
+                field = fields.GetElement(j)
+                if field.Name == "date":
+                    hist_dt = datetime.datetime.strptime(str(field.Value), '%m/%d/%y %H:%M:%S')
+                else:
+                    hist_field = field.Name
+                    hist_val = field.Value
+            results.append( (hist_dt, hist_val) )
+    return results
+ 
 
 def download_yahoo_quote():
     '''
