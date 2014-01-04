@@ -1,13 +1,3 @@
-from win32com.client import DispatchWithEvents
-from win32com.client import constants
-from win32com.client import CastTo
-
-from pythoncom import PumpWaitingMessages
-from pythoncom import Empty
-from pythoncom import Missing
-from pythoncom import com_error
-import win32api
-
 import os
 import logging
 from urllib import urlencode as urlencode
@@ -16,6 +6,23 @@ import csv
 import tempfile
 import datetime
 import re
+import warnings
+
+################################################################################
+# required by BBG COM interface
+bbg_imports = False
+try:
+    from pythoncom import PumpWaitingMessages
+    from pythoncom import Empty
+    from pythoncom import Missing
+    from pythoncom import com_error
+    import win32api
+    from win32com.client import DispatchWithEvents
+    from win32com.client import constants
+    from win32com.client import CastTo
+    bbg_imports = True
+except ImportError:
+    warnings.warn("unable to load PythonCOM + win32API + win32COM", DeprecationWarning)
 
 ################################################################################
 # BBG global async variables
@@ -85,7 +92,9 @@ def download_bbg_timeseries(symbol, start, end, field):
 def init_bbg_session():
     global session
     global rfd
-
+    if not bbg_imports:
+        logging.info('Call to BBG but could not load the imports')
+        return False;
     try:
         if session is None:
             session = DispatchWithEvents('blpapicom.ProviderSession.1', SessionEvents)
