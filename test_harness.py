@@ -26,6 +26,64 @@ def line_plot(dates, values):
 
 ################################################################################
 
+def get_bbg_id():
+    t = datetime.datetime.today()
+    today_date = datetime.datetime(t.year, t.month, t.day)
+    start_date =  today_date - datetime.timedelta(10)
+    end_date = today_date  - datetime.timedelta(1)
+    index_list = ('SPX Index', 'DJI Index', 'RTY Index')
+
+    for index in index_list:
+        index_id = data_retrieval.get_id(
+            'download_bbg_timeseries', 
+            {
+                'symbol': index, 
+                'start': start_date, 
+                'end': end_date,
+                'field' : 'INDX_MWEIGHT_HIST'
+            })
+        print index_id;
+
+################################################################################
+
+def get_bbg_data():
+    t = datetime.datetime.today()
+    today_date = datetime.datetime(t.year, t.month, t.day)
+    start_date =  today_date - datetime.timedelta(10)
+    end_date = today_date  - datetime.timedelta(1)
+    index_list = ('SPX Index', 'DJI Index', 'RTY Index')
+
+    equity_set = set()
+    for index in index_list:
+        idx_data = data_retrieval.get_time_series(
+            'download_bbg_timeseries', 
+            {
+                'symbol': index, 
+                'start': start_date, 
+                'end': end_date,
+                'field' : 'INDX_MWEIGHT_HIST'
+            })
+        for date,equity_list in idx_data:
+            equity_set.update(equity_list)
+    
+    for equity in equity_set:
+        equity = equity + " Equity"
+        print equity
+        equ_data = data_retrieval.get_time_series(
+            'download_bbg_timeseries', 
+            {
+                'symbol': equity, 
+                'start': start_date, 
+                'end': end_date,
+                'field' : 'PX_LAST'
+            })
+# read indices and query all equities
+#    for infile in glob.glob( os.path.join(os.getcwd(), index_dir,'*.data') ):
+#        print infile
+#        idx_equity_list = utils.deserialise_obj(infile)
+
+################################################################################
+
 def linear_reg():
     ibm_data = data_retrieval.get_time_series(
             'download_yahoo_timeseries', 
@@ -161,7 +219,7 @@ def generate_test_transform_google_timeseries():
 ################################################################################
 
 if __name__ == '__main__':
-    logging.basicConfig(level='DEBUG')
+    #logging.basicConfig(level='DEBUG')
     # plot_treasuries()
     # plot_stock(
     #         'IBM', 
@@ -170,7 +228,9 @@ if __name__ == '__main__':
     # generate_test_transform_google_timeseries()
     # generate_test_transform_yahoo_timeseries()
     # get_series()
-    linear_reg()
+    # linear_reg()
     # time_loops()
+    get_bbg_data()
+    #get_bbg_id()
 
 ################################################################################
