@@ -49,34 +49,77 @@ def get_bbg_id():
 def get_bbg_data():
     t = datetime.datetime.today()
     today_date = datetime.datetime(t.year, t.month, t.day)
-    start_date =  today_date - datetime.timedelta(10)
+    start_date =  datetime.datetime(1990, 1, 1)
     end_date = today_date  - datetime.timedelta(1)
     index_list = ('SPX Index', 'DJI Index', 'RTY Index')
-
     equity_set = set()
     for index in index_list:
+        field = ''
+        if index == 'DJI Index':
+            field = 'INDX_MWEIGHT'
+        else:
+            field = 'INDX_MWEIGHT_HIST'
+
         idx_data = data_retrieval.get_time_series(
             'download_bbg_timeseries', 
             {
                 'symbol': index, 
                 'start': start_date, 
                 'end': end_date,
-                'field' : 'INDX_MWEIGHT_HIST'
+                'field' : field
             })
-        for date,equity_list in idx_data:
-            equity_set.update(equity_list)
-    
+        if idx_data is not None:
+            utils.serialise_csv(idx_data, data_retrieval.get_csv_filename('_'.join((index, 'COMPOSITION'))))
+            for date,equity_list in idx_data:
+                equity_set.update(equity_list)
+
+    fields = (
+        'PX_LAST', 
+        'PX_OFFICIAL_CLOSE', 
+        'PX_OPEN', 
+        'PX_LAST',
+        'PX_OPEN',
+        'PX_LOW',
+        'TOT_RETURN_INDEX_GROSS_DVDS',
+        'DAY_TO_DAY_TOT_RETURN_GROSS_DVDS',
+        'EQY_DPS',
+        'SECURITY_DES',
+        'TRAIL_12M_GROSS_MARGIN',
+        'ASSET_TURNOVER',
+        'BS_SH_OUT',
+        'TRAIL_12M_CASH_FROM_OPER',
+        'CF_CASH_FROM_OPER',
+        'BS_LT_BORROW',
+        'LT_DEBT_TO_TOT_ASSET',
+        'LIVE_LT_DEBT_TO_TOTAL_ASSETS',
+        'CUR_RATIO',
+        'CASH_RATIO',
+        'QUICK_RATIO',
+        'NET_INCOME',
+        'CF_CASH_FROM_OPER',
+        'RETURN_ON_ASSET',
+        'EBIT',
+        'EBITDA',
+        'TOT_DEBT_TO_TOT_ASSET',
+        'TOT_DEBT_TO_COM_EQY',
+        'BS_TOT_ASSET',
+        'HISTORICAL_MARKET_CAP')
+
+
     for equity in equity_set:
         equity = equity + " Equity"
-        print equity
-        equ_data = data_retrieval.get_time_series(
-            'download_bbg_timeseries', 
-            {
-                'symbol': equity, 
-                'start': start_date, 
-                'end': end_date,
-                'field' : 'PX_LAST'
-            })
+        for field in fields:
+            equ_data = data_retrieval.get_time_series(
+                'download_bbg_timeseries', 
+                {
+                    'symbol': equity, 
+                    'start': start_date, 
+                    'end': end_date,
+                    'field' : field
+                })
+            if equ_data is not None:
+                utils.serialise_csv(equ_data, data_retrieval.get_csv_filename('_'.join((equity, field))))
+
 # read indices and query all equities
 #    for infile in glob.glob( os.path.join(os.getcwd(), index_dir,'*.data') ):
 #        print infile
@@ -232,5 +275,5 @@ if __name__ == '__main__':
     # time_loops()
     get_bbg_data()
     #get_bbg_id()
-
+    print "done"
 ################################################################################
