@@ -64,18 +64,14 @@ google_config = {
 class SessionEvents(object):
     def OnProcessEvent(self, event_object):
         global pending_requests
-
         # obtain Event object interface
         event = CastTo(event_object, 'Event')
-        
         if event.EventType == constants.RESPONSE: 
             pending_requests = pending_requests - 1
             process_event(event)
             self.continueLoop = False
-            
         elif event.EventType == constants.PARTIAL_RESPONSE:
             process_event(event)
-        
         else:
              process_other_event(event)
 
@@ -98,18 +94,15 @@ def init_bbg_session():
     try:
         if session is None:
             session = DispatchWithEvents('blpapicom.ProviderSession.1', SessionEvents)
-        
             # Start a Session
             session.Start()
-
             if not session.OpenService('//blp/refdata'):
                 print 'Failed to opent service'
                 raise Exception
-            
             # event loop
             session.continueLoop = True
             rfd = session.GetService('//blp/refdata')
-            return True
+        return True
     except com_error as error:
         logging.info('Failed to init BBG: {0}'.format(error[1]))
         return False
@@ -125,23 +118,20 @@ def download_bbg_historicaldatarequest(symbol, start, end, field):
 
     results = list()
 
-    start_date = datetime.datetime(1960,1,1)
-    end_date = datetime.datetime.today() - datetime.timedelta(1)
-
     bbgdtformat = '%Y%m%d'
 
     if init_bbg_session():
-        # for each index file
         request = rfd.CreateRequest("HistoricalDataRequest")
         request.GetElement("fields").AppendValue(field)
-        request.Set("periodicityAdjustment", "ACTUAL")
+        #request.Set("periodicityAdjustment", "ACTUAL")
         request.Set("periodicitySelection", "DAILY")
-        request.Set("startDate", start_date.strftime(bbgdtformat))
-        request.Set("endDate", end_date.strftime(bbgdtformat))
+        request.Set("startDate", start.strftime(bbgdtformat))
+        request.Set("endDate", end.strftime(bbgdtformat))
 
         request.GetElement("securities").AppendValue(symbol)
 
-            # send request
+        print "send request for <" + symbol  + "> <" + field + ">"
+        # send request
         cid = session.SendRequest(request)
         pending_requests = pending_requests + 1
 
