@@ -1,4 +1,5 @@
 import pickle
+import spickle
 import logging
 import datetime
 import time
@@ -8,21 +9,33 @@ import collections
 
 ################################################################################
 
+def isiterable(obj):
+    try:
+        some_object_iterator = iter(obj)
+        return True
+    except TypeError, te:
+        return False
+
+################################################################################
+
 def serialise_obj(obj, filename):
     '''
     Use pickle to store obj in binary format in target filename
     '''
     logging.debug('Serialising object to file ' + filename)
     with open(filename, 'wb') as f:
-        pickle.dump(obj, f)
+        spickle.s_dump(obj, f)
 
 def deserialise_obj(filename):
     '''
     Use pickle to deserialise object that's been saved in binary format
     '''
     logging.debug('Deserialising object from file ' + filename)
+    results = list()
     with open(filename, 'rb') as f:
-        return pickle.load(f)
+        for element in spickle.s_load(f):
+            results.append(element) 
+    return results
 
 ################################################################################
 
