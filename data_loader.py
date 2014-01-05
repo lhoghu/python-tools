@@ -1,12 +1,3 @@
-from win32com.client import DispatchWithEvents
-from win32com.client import constants
-from win32com.client import CastTo
-
-from pythoncom import PumpWaitingMessages
-from pythoncom import Empty
-from pythoncom import Missing
-from pythoncom import com_error
-
 import os
 import logging
 from urllib import urlencode as urlencode
@@ -15,6 +6,23 @@ import csv
 import tempfile
 import datetime
 import re
+import warnings
+
+################################################################################
+# required by BBG COM interface
+bbg_imports = False
+try:
+    from pythoncom import PumpWaitingMessages
+    from pythoncom import Empty
+    from pythoncom import Missing
+    from pythoncom import com_error
+    import win32api
+    from win32com.client import DispatchWithEvents
+    from win32com.client import constants
+    from win32com.client import CastTo
+    bbg_imports = True
+except ImportError:
+    warnings.warn("unable to load PythonCOM + win32API + win32COM", DeprecationWarning)
 
 ################################################################################
 # BBG global async variables
@@ -84,20 +92,27 @@ def download_bbg_timeseries(symbol, start, end, field):
 def init_bbg_session():
     global session
     global rfd
-
-    if session is None:
-        session = DispatchWithEvents('blpapicom.ProviderSession.1', SessionEvents)
-    
-        # Start a Session
-        session.Start()
-
-        if not session.OpenService('//blp/refdata'):
-            print 'Failed to opent service'
-            raise Exception
+    if not bbg_imports:
+        logging.info('Call to BBG but could not load the imports')
+        return False;
+    try:
+        if session is None:
+            session = DispatchWithEvents('blpapicom.ProviderSession.1', SessionEvents)
         
-        # event loop
-        session.continueLoop = True
-        rfd = session.GetService('//blp/refdata')
+            # Start a Session
+            session.Start()
+
+            if not session.OpenService('//blp/refdata'):
+                print 'Failed to opent service'
+                raise Exception
+            
+            # event loop
+            session.continueLoop = True
+            rfd = session.GetService('//blp/refdata')
+            return True
+    except com_error as error:
+        logging.info('Failed to init BBG: {0}'.format(error[1]))
+        return False
 
 ################################################################################
 
@@ -115,28 +130,29 @@ def download_bbg_historicaldatarequest(symbol, start, end, field):
 
     bbgdtformat = '%Y%m%d'
 
-    init_bbg_session()
+    if init_bbg_session():
+        # for each index file
+        request = rfd.CreateRequest("HistoricalDataRequest")
+        request.GetElement("fields").AppendValue(field)
+        request.Set("periodicityAdjustment", "ACTUAL")
+        request.Set("periodicitySelection", "DAILY")
+        request.Set("startDate", start_date.strftime(bbgdtformat))
+        request.Set("endDate", end_date.strftime(bbgdtformat))
 
-    # for each index file
-    request = rfd.CreateRequest("HistoricalDataRequest")
-    request.GetElement("fields").AppendValue(field)
-    request.Set("periodicityAdjustment", "ACTUAL")
-    request.Set("periodicitySelection", "DAILY")
-    request.Set("startDate", start_date.strftime(bbgdtformat))
-    request.Set("endDate", end_date.strftime(bbgdtformat))
-#                    request.set("maxDataPoints", 100)
+        request.GetElement("securities").AppendValue(symbol)
 
-    request.GetElement("securities").AppendValue(symbol)
+            # send request
+        cid = session.SendRequest(request)
+        pending_requests = pending_requests + 1
 
-        # send request
-    cid = session.SendRequest(request)
-    pending_requests = pending_requests + 1
+        while pending_requests > 0:
+            PumpWaitingMessages()
 
-    while pending_requests > 0:
-        PumpWaitingMessages()
+        return results
+    else:
+        return None
 
-    return results
-    
+
 ################################################################################
 
 def download_bbg_refdatarequest(symbol, start, end, field): 
@@ -146,43 +162,42 @@ def download_bbg_refdatarequest(symbol, start, end, field):
     global session
     global rfd
 
-    results = list();
+    if init_bbg_session():
+        results = list();
+        bbgdtformat = '%Y%m%d'
+        day_count = (end - start).days + 1
+            
+        # event loop
+        session.continueLoop = True
 
-    bbgdtformat = '%Y%m%d'
+        for single_date in (start + datetime.timedelta(n) for n in range(day_count)):
+            
+            request = rfd.CreateRequest('ReferenceDataRequest')
 
-    init_bbg_session()
+            # configure historical request
+            request.GetElement('securities').AppendValue(symbol)
+            
+            request.GetElement('fields').AppendValue(field)
+            request.GetElement('fields').AppendValue('END_DATE_OVERRIDE')
+            override = request.GetElement('overrides').AppendElment()
+            override.SetElement('fieldId', 'END_DATE_OVERRIDE')
+            override.SetElement('value', single_date.strftime(bbgdtformat))
 
-    day_count = (end - start).days + 1
+            # send request
+            cid = session.SendRequest(request)
+            print "Sent " + single_date.strftime(bbgdtformat) + symbol
+
+            pending_requests = pending_requests + 1
+            while pending_requests >= max_pending_requests:
+                PumpWaitingMessages()
+          
         
-    # event loop
-    session.continueLoop = True
-
-    for single_date in (start + datetime.timedelta(n) for n in range(day_count)):
-        
-        request = rfd.CreateRequest('ReferenceDataRequest')
-
-        # configure historical request
-        request.GetElement('securities').AppendValue(symbol)
-        
-        request.GetElement('fields').AppendValue(field)
-        request.GetElement('fields').AppendValue('END_DATE_OVERRIDE')
-        override = request.GetElement('overrides').AppendElment()
-        override.SetElement('fieldId', 'END_DATE_OVERRIDE')
-        override.SetElement('value', single_date.strftime(bbgdtformat))
-
-        # send request
-        cid = session.SendRequest(request)
-        print "Sent " + single_date.strftime(bbgdtformat) + symbol
-
-        pending_requests = pending_requests + 1
-        while pending_requests >= max_pending_requests:
+        while pending_requests > 0:
             PumpWaitingMessages()
-      
-    
-    while pending_requests > 0:
-        PumpWaitingMessages()
-        
-    return results;
+            
+        return results;
+    else:
+        return None
 
 ################################################################################
 

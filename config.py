@@ -1,4 +1,5 @@
 CACHE_FOLDER = 'cache'
+CSV_FOLDER = 'csv'
 
 DB = 'file'
 

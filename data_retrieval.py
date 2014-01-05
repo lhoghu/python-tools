@@ -8,6 +8,7 @@ import db
 ################################################################################
 
 CACHE_EXT = '.py'
+CSV_EXT = '.csv'
 MONGO_DB = 'mongo'
 
 ################################################################################
@@ -18,6 +19,15 @@ def get_cache_filename(id):
     '''
     return os.path.join(config.CACHE_FOLDER, id) + CACHE_EXT
     
+
+################################################################################
+
+def get_csv_filename(id):
+    '''
+    Get the filename in the cache associated with id
+    '''
+    return os.path.join(config.CSV_FOLDER, id) + CSV_EXT
+
 ################################################################################
 
 def get_from_cache(id):
@@ -114,5 +124,10 @@ def get_time_series(loader, loader_args):
         utils.serialise_obj(ts, get_cache_filename(id))
 
     return ts
+
+################################################################################
+
+def save_time_series_csv(ts, id):
+    utils.serialise_csv(ts, get_csv_filename(id))
 
 ################################################################################

@@ -2,6 +2,9 @@ import pickle
 import logging
 import datetime
 import time
+import csv
+import os
+import collections
 
 ################################################################################
 
@@ -20,6 +23,28 @@ def deserialise_obj(filename):
     logging.debug('Deserialising object from file ' + filename)
     with open(filename, 'rb') as f:
         return pickle.load(f)
+
+################################################################################
+
+def flatten(seq):
+    for x in seq:
+        try:
+            if isinstance(x, basestring):
+                yield x  # not iterable
+            else:
+                for y in flatten(x):
+                    yield y
+        except TypeError:
+            yield x  # not iterable
+
+
+def serialise_csv(obj, filename):
+    if not os.path.isfile(filename):
+        logging.debug('Serialising object to CSV file ' + filename)
+        with open(filename, 'wb') as csvfile:
+            csvwr = csv.writer(csvfile, quoting=csv.QUOTE_ALL, dialect='excel')
+            for line in obj:
+                csvwr.writerow(list(flatten(line)))
 
 ################################################################################
 
