@@ -39,6 +39,7 @@ def get_from_cache(id):
 
     cache_file = get_cache_filename(id)
     if os.path.exists(cache_file):
+        logging.debug("cached file found {0}".format(cache_file))
         return utils.deserialise_obj(cache_file)
 
     return False 

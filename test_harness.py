@@ -7,6 +7,7 @@ import data_retrieval
 import algorithms
 import timeseries
 import charts
+import random
 
 ################################################################################
 
@@ -47,11 +48,14 @@ def get_bbg_id():
 ################################################################################
 
 def get_bbg_data():
-    t = datetime.datetime.today()
+    logging.basicConfig(filename='debug.log',level=logging.DEBUG)
+
+    t = datetime.datetime(2014, 1, 4)
     today_date = datetime.datetime(t.year, t.month, t.day)
     start_date =  datetime.datetime(1990, 1, 1)
     end_date = today_date  - datetime.timedelta(1)
     index_list = ('SPX Index', 'DJI Index', 'RTY Index')
+    # index_list = ('SPX Index', 'DJI Index', 'RTY Index', 'RAY Index')
     equity_set = set()
     for index in index_list:
         field = ''
@@ -105,8 +109,92 @@ def get_bbg_data():
         'BS_TOT_ASSET',
         'HISTORICAL_MARKET_CAP')
 
+    start_date = datetime.datetime(1960, 1, 1)
+    random.seed()
 
-    for equity in equity_set:
+    equity_list = list(equity_set)
+    random.shuffle(equity_list)
+    for equity in equity_list:
+        equity = equity + " Equity"
+        for field in fields:
+            equ_data = data_retrieval.get_time_series(
+                'download_bbg_timeseries', 
+                {
+                    'symbol': equity, 
+                    'start': start_date, 
+                    'end': end_date,
+                    'field' : field
+                })
+            if equ_data is not None:
+                utils.serialise_csv(equ_data, data_retrieval.get_csv_filename('_'.join((equity, field))))
+
+def get_bbg_spxdata():
+    logging.basicConfig(filename='debug.log',level=logging.DEBUG)
+
+    t = datetime.datetime(2014, 1, 4)
+    today_date = datetime.datetime(t.year, t.month, t.day)
+    start_date =  datetime.datetime(1990, 1, 1)
+    end_date = today_date  - datetime.timedelta(1)
+    index_list = ('SPX Index',)
+    equity_set = set()
+    for index in index_list:
+        field = ''
+        if index == 'DJI Index':
+            field = 'INDX_MWEIGHT'
+        else:
+            field = 'INDX_MWEIGHT_HIST'
+
+        idx_data = data_retrieval.get_time_series(
+            'download_bbg_timeseries', 
+            {
+                'symbol': index, 
+                'start': start_date, 
+                'end': end_date,
+                'field' : field
+            })
+        if idx_data is not None:
+            utils.serialise_csv(idx_data, data_retrieval.get_csv_filename('_'.join((index, 'COMPOSITION'))))
+            for date,equity_list in idx_data:
+                equity_set.update(equity_list)
+
+    fields = (
+        'PX_LAST', 
+        'PX_OFFICIAL_CLOSE', 
+        'PX_OPEN', 
+        'PX_LAST',
+        'PX_OPEN',
+        'PX_LOW',
+        'TOT_RETURN_INDEX_GROSS_DVDS',
+        'DAY_TO_DAY_TOT_RETURN_GROSS_DVDS',
+        'EQY_DPS',
+        'SECURITY_DES',
+        'TRAIL_12M_GROSS_MARGIN',
+        'ASSET_TURNOVER',
+        'BS_SH_OUT',
+        'TRAIL_12M_CASH_FROM_OPER',
+        'CF_CASH_FROM_OPER',
+        'BS_LT_BORROW',
+        'LT_DEBT_TO_TOT_ASSET',
+        'LIVE_LT_DEBT_TO_TOTAL_ASSETS',
+        'CUR_RATIO',
+        'CASH_RATIO',
+        'QUICK_RATIO',
+        'NET_INCOME',
+        'CF_CASH_FROM_OPER',
+        'RETURN_ON_ASSET',
+        'EBIT',
+        'EBITDA',
+        'TOT_DEBT_TO_TOT_ASSET',
+        'TOT_DEBT_TO_COM_EQY',
+        'BS_TOT_ASSET',
+        'HISTORICAL_MARKET_CAP')
+
+    start_date = datetime.datetime(1960, 1, 1)
+    random.seed()
+
+    equity_list = list(equity_set)
+    random.shuffle(equity_list)
+    for equity in equity_list:
         equity = equity + " Equity"
         for field in fields:
             equ_data = data_retrieval.get_time_series(
