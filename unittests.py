@@ -6,6 +6,7 @@ import datetime
 import timeseries
 import data_loader
 import data_retrieval
+import data_structure
 import tempfile
 import config
 import db
@@ -302,7 +303,7 @@ class TestDataLoaderFunctions(unittest.TestCase):
         test_data = os.path.join(self.data_folder,
                 'test_transform_yahoo_timeseries.data.py')
         data = utils.deserialise_obj(test_data)
-        result = data_loader.transform_yahoo_timeseries(data, 'IBM')
+        result = data_loader.transform_yahoo_timeseries(data)
 
         test_result = os.path.join(self.data_folder, 
                 'test_transform_yahoo_timeseries.result.py')
@@ -318,7 +319,7 @@ class TestDataLoaderFunctions(unittest.TestCase):
         test_data = os.path.join(self.data_folder,
                 'test_transform_google_timeseries.data.py')
         data = utils.deserialise_obj(test_data)
-        result = data_loader.transform_google_timeseries(data, 'GOOG')
+        result = data_loader.transform_google_timeseries(data)
 
         test_result = os.path.join(self.data_folder, 
                 'test_transform_google_timeseries.result.py')
@@ -378,12 +379,12 @@ class TestDataRetrievalFunctions(unittest.TestCase):
         # data_loader.download_mock_series for how the test result is 
         # actually created
         self.assertEqual(loader_args, 
-                result[symbol][data_loader.METADATA])
+                result[data_structure.ID])
 
         # Check we can now retrieve the id from the cache
         cached_result = data_retrieval.get_from_cache(id)
         self.assertEqual(loader_args, 
-                cached_result[symbol][data_loader.METADATA])
+                cached_result[data_structure.ID])
         
         # Remove it from the cache
         data_retrieval.clear_cache(id)
@@ -464,13 +465,11 @@ class TestMongoDataRetrievalFunctions(unittest.TestCase):
         # as metadata on the time series, but check 
         # data_loader.download_mock_series for how the test result is 
         # actually created
-        self.assertEqual(loader_args, 
-                result[symbol][data_loader.METADATA])
+        self.assertEqual(loader_args, result[data_structure.ID])
 
         # Check we can now retrieve the id from the cache
         cached_result = data_retrieval.get_from_cache(id)
-        self.assertEqual(loader_args, 
-                cached_result[symbol][data_loader.METADATA])
+        self.assertEqual(loader_args, cached_result[data_structure.ID])
         
         # Remove it from the cache
         data_retrieval.clear_cache(id)

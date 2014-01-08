@@ -324,6 +324,17 @@ def plot_stock(symbol, start, end):
 
 ################################################################################
 
+def test_time_series_record():
+     
+    doc = data_loader.download_mock_series(
+        'sym', 
+        datetime.datetime(2014, 1, 1), 
+        datetime.datetime(2014, 1, 4))
+
+    print(doc)
+
+################################################################################
+
 def generate_test_transform_treasuries_data():
     data = data_loader.download_csv(data_loader.treasuries_config['TREASURIES_URL'])
     nb_rows = len(data)
@@ -337,7 +348,7 @@ def generate_test_transform_yahoo_timeseries():
     end = datetime.datetime(2013, 11, 11)
     data = data_loader.download_yahoo_timeseries_raw(symbol, start, end)
     utils.serialise_obj(data, 'testdata/test_transform_yahoo_timeseries.data.py')
-    utils.serialise_obj(data_loader.transform_yahoo_timeseries(data, symbol), 'testdata/test_transform_yahoo_timeseries.result.py')
+    utils.serialise_obj(data_loader.transform_yahoo_timeseries(data), 'testdata/test_transform_yahoo_timeseries.result.py')
 
 def generate_test_transform_google_timeseries():
     symbol = 'GOOG'
@@ -345,7 +356,7 @@ def generate_test_transform_google_timeseries():
     end = datetime.datetime(2013, 11, 11)
     data = data_loader.download_google_timeseries_raw(symbol, start, end)
     utils.serialise_obj(data, 'testdata/test_transform_google_timeseries.data.py')
-    utils.serialise_obj(data_loader.transform_google_timeseries(data, symbol), 'testdata/test_transform_google_timeseries.result.py')
+    utils.serialise_obj(data_loader.transform_google_timeseries(data), 'testdata/test_transform_google_timeseries.result.py')
 
 ################################################################################
 
@@ -356,12 +367,16 @@ if __name__ == '__main__':
     #         'IBM', 
     #         datetime.datetime(2003, 11, 11), 
     #         datetime.datetime(2013, 11, 11))
-    # generate_test_transform_google_timeseries()
-    # generate_test_transform_yahoo_timeseries()
+    generate_test_transform_treasuries_data()
+    generate_test_transform_google_timeseries()
+    generate_test_transform_yahoo_timeseries()
     # get_series()
     # linear_reg()
     # time_loops()
-    get_bbg_data()
+    # get_bbg_data()
     #get_bbg_id()
+    # test_time_series_record()
+
     print "done"
+
 ################################################################################

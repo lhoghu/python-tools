@@ -7,6 +7,7 @@ import tempfile
 import datetime
 import re
 import warnings
+import data_structure
 
 ################################################################################
 # required by BBG COM interface
@@ -34,10 +35,6 @@ results = list()
 
 ################################################################################
 
-TIMESERIES = 'timeseries'
-METADATA = 'metadata'
-
-################################################################################
 
 treasuries_config = {
         'TREASURIES_URL': r'http://www.federalreserve.gov/datadownload/Output.aspx?rel=H15&series=bf17364827e38702b42a58cf8eaa3f78&lastObs=&from=&to=&filetype=csv&label=include&layout=seriescolumn',
@@ -73,7 +70,7 @@ class SessionEvents(object):
         elif event.EventType == constants.PARTIAL_RESPONSE:
             process_event(event)
         else:
-             process_other_event(event)
+            process_other_event(event)
 
 ################################################################################
 
@@ -156,17 +153,17 @@ def download_bbg_refdatarequest(symbol, start, end, field):
         results = list();
         bbgdtformat = '%Y%m%d'
         day_count = (end - start).days + 1
-            
+
         # event loop
         session.continueLoop = True
 
         for single_date in (start + datetime.timedelta(n) for n in range(day_count)):
-            
+
             request = rfd.CreateRequest('ReferenceDataRequest')
 
             # configure historical request
             request.GetElement('securities').AppendValue(symbol)
-            
+
             request.GetElement('fields').AppendValue(field)
             request.GetElement('fields').AppendValue('END_DATE_OVERRIDE')
             override = request.GetElement('overrides').AppendElment()
@@ -180,11 +177,11 @@ def download_bbg_refdatarequest(symbol, start, end, field):
             pending_requests = pending_requests + 1
             while pending_requests >= max_pending_requests:
                 PumpWaitingMessages()
-          
-        
+
+
         while pending_requests > 0:
             PumpWaitingMessages()
-            
+
         return results;
     else:
         return None
@@ -192,7 +189,7 @@ def download_bbg_refdatarequest(symbol, start, end, field):
 ################################################################################
 
 def process_other_event(event):
-    
+
     iter = event.CreateMessageIterator()
     while iter.Next():
 
@@ -230,7 +227,7 @@ def process_referencedataresponse(msg):
         field_data = security.GetElement('fieldData')
 
 #            print(str(security_name) + str(field_data.NumElements))
-        
+
         for i in range(field_data.NumElements):
             field = field_data.GetElement(i)
 #                print("field" + str(field) + str(field.NumValues))
@@ -244,7 +241,7 @@ def process_referencedataresponse(msg):
                             idx_equity_list.append(equity_name)         
 #                                print elem.Name, elem.Value
             elif field.Name == "END_DATE_OVERRIDE":
-#                    print str(field.Value)
+                #                    print str(field.Value)
                 requesttime = datetime.datetime.strptime(str(field.Value), '%m/%d/%y %H:%M:%S')
                 if requesttime > datetime.datetime.today():
                     requesttime = datetime.datetime(requesttime.year-100, requesttime.month, requesttime.day)
@@ -278,7 +275,8 @@ def process_historicaldataresponse(msg):
                     hist_val = field.Value
             results.append( (hist_dt, hist_val) )
     return results
- 
+
+################################################################################
 
 def download_yahoo_quote():
     '''
@@ -294,7 +292,14 @@ def download_yahoo_quote():
 
 def download_yahoo_timeseries(symbol, start, end):
     data = download_yahoo_timeseries_raw(symbol, start, end)
-    return transform_yahoo_timeseries(data, symbol)
+    return data_structure.create_time_series(
+            {
+                'symbol': symbol,
+                'start': start,
+                'end': end
+                },
+            transform_yahoo_timeseries(data, symbol),
+            {})
 
 ################################################################################
 
@@ -322,19 +327,26 @@ def download_yahoo_timeseries_raw(symbol, start, end):
 
 ################################################################################
 
-def transform_yahoo_timeseries(data, unique_id):
+def transform_yahoo_timeseries(data):
     '''
     Turn time series data from yahoo into form suitable for downstream 
     processing
     '''
     logging.debug('Transforming yahoo data')
-    return transform_timeseries_table(data, unique_id, yahoo_config)
+    return transform_timeseries_table(data, yahoo_config)
 
 ################################################################################
 
 def download_google_timeseries(symbol, start, end):
     data = download_google_timeseries_raw(symbol, start, end)
-    return transform_google_timeseries(data, symbol)
+    return data_structure.create_time_series(
+            {
+                'symbol': symbol,
+                'start': start,
+                'end': end
+                },
+            transform_google_timeseries(data, symbol),
+            {})
 
 ################################################################################
 
@@ -358,17 +370,17 @@ def download_google_timeseries_raw(symbol, start, end):
 
 ################################################################################
 
-def transform_google_timeseries(data, unique_id):
+def transform_google_timeseries(data):
     '''
     Turn time series data from google into form suitable for downstream 
     processing
     '''
     logging.debug('Transforming google data')
-    return transform_timeseries_table(data, unique_id, google_config)
+    return transform_timeseries_table(data, google_config)
 
 ################################################################################
 
-def transform_timeseries_table(data, unique_id, config):
+def transform_timeseries_table(data, config):
     '''
     Turns tables of the form
     Date, Open, High, Low, Close, Volume, ...
@@ -376,10 +388,8 @@ def transform_timeseries_table(data, unique_id, config):
     2012-11-12, 125, 634, 234.2, 623.52, 26642, ...
     ...
 
-    into a dictionary of the form
-    { unique_id: 
-        timeseries: [(date1, close1), (date2, close2), ...], 
-        metadata: {}}
+    into an array of tuples of the form
+        [(date1, close1), (date2, close2), ...], 
     '''
     if len(data) == 0:
         return {}
@@ -393,13 +403,7 @@ def transform_timeseries_table(data, unique_id, config):
 
     timeseries = [timepoint(row) for row in data[1:]]
 
-    return { 
-            unique_id: 
-            {
-                TIMESERIES: timeseries,
-                METADATA: {}
-                } 
-            }
+    return timeseries
 
 ################################################################################
 
@@ -468,18 +472,13 @@ def transform_treasuries_data(data):
     if nb_time_series < 1:
         return {}
 
-    # Initialise the return object - this will by an dictionary of 
+    # Initialise the return object - this will by an array of 
     # dictionaries, Each dictionary is an individual time series with 2 keys:
     #   timeseries: an array of (date, val) tuples
-    #   metadata: a dictionary of metadata associated with each time series
-    # Here we create an array of dictionaries. Later we'll turn this into a 
-    # dictionary of dictionaries where we key off unique id and this is the
-    # object we'll finally return. We just don't know the unique keys at 
-    # this stage
-    time_series = [{} for i in range(1, nb_time_series)]
-    for t in time_series:
-        t[METADATA] = {} 
-        t[TIMESERIES] = []
+    #   id: a dictionary of metadata associated with each time series
+    #   source: an array of metadata associated with series updates
+    time_series = [data_structure.create_time_series({}, [], {}) 
+            for i in range(1, nb_time_series)]
 
     # Parse the csv data
     for row in data:
@@ -488,24 +487,23 @@ def transform_treasuries_data(data):
             year, month, day = row[0].split('-')
             dte = datetime.datetime(int(year), int(month), int(day))
             for s in range(1, nb_time_series):
-                time_series[s-1][TIMESERIES].append((dte, row[s]))
+                time_series[s-1][data_structure.TIMESERIES].append((dte, row[s]))
         else:
-            # The row is metadata: add it to the metadata entry
+            # The row is metadata: add it to the id entry
             # Use the key we get back from the input data as the
             # dicionary key
             for s in range(1, nb_time_series):
-                time_series[s-1][METADATA][row[0]] = row[s]
+                time_series[s-1][data_structure.ID][row[0]] = row[s]
 
-    # Finally create the return dicionary keyed of unique id
-    ret = {}
-    for t in time_series:
-        unique_id = t[METADATA][treasuries_config['ID_FIELD']]
-        ret[unique_id] = t
+    # Finally create a list of symbols we've retrieved for the logs 
+    symbols = [
+            t[data_structure.ID][treasuries_config['ID_FIELD']]
+            for t in time_series]
 
     logging.info('Retrieved the following treasuries: {0}'.
-            format(', '.join(ret.keys())))
+            format(', '.join(symbols)))
 
-    return ret
+    return time_series
 
 ################################################################################
 
@@ -513,15 +511,13 @@ def download_mock_series(symbol, start, end):
     '''
     Mock query for unit testing - just returns the input args as metadata
     '''
-    return { symbol: {
-        TIMESERIES: [],
-        METADATA: {
+    id = {
             'symbol': symbol,
             'start': start,
             'end': end
             }
-        }
-        }
+
+    return data_structure.create_time_series(id, [], {})
 
 ################################################################################
 

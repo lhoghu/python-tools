@@ -5,3 +5,5 @@ TAGS
 testdata/mongo/*
 mongo/*
 mongo.log
+.project
+.pydevproject
