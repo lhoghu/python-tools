@@ -5,31 +5,31 @@ import datetime
 import time
 import csv
 import os
-import collections
 
 ################################################################################
 
 def isiterable(obj):
     try:
-        some_object_iterator = iter(obj)
+        _ = iter(obj)
         return True
-    except TypeError, te:
+    except TypeError:
         return False
 
 ################################################################################
 
 def s_serialise_obj(obj, filename):
-    '''
+    """
     Use pickle to store obj in binary format in target filename
-    '''
+    """
     logging.debug('Serialising object to file ' + filename)
     with open(filename, 'wb') as f:
         spickle.s_dump(obj, f)
 
+
 def s_deserialise_obj(filename):
-    '''
+    """
     Use pickle to deserialise object that's been saved in binary format
-    '''
+    """
     logging.debug('Deserialising object from file ' + filename)
     results = list()
     with open(filename, 'rb') as f:
@@ -40,17 +40,18 @@ def s_deserialise_obj(filename):
 ################################################################################
 
 def serialise_obj(obj, filename):
-    '''
+    """
     Use pickle to store obj in binary format in target filename
-    '''
+    """
     logging.debug('Serialising object to file ' + filename)
     with open(filename, 'wb') as f:
         pickle.dump(obj, f)
 
+
 def deserialise_obj(filename):
-    '''
+    """
     Use pickle to deserialise object that's been saved in binary format
-    '''
+    """
     logging.debug('Deserialising object from file ' + filename)
     with open(filename, 'rb') as f:
         return pickle.load(f)
@@ -79,25 +80,27 @@ def serialise_csv(obj, filename):
 
 ################################################################################
 
-def log_entry(f): 
-    ''' 
+def log_entry(f):
+    """ 
     Decorator for functions to log entry 
-    ''' 
+    """ 
 
-    def log_entry(*args): 
+    def wrap(*args):
         logging.debug('.'.join([f.__module__, f.__name__])) 
         return f(*args) 
                     
-    log_entry.__name__ = f.__name__ 
-    return log_entry
+    wrap.__name__ = f.__name__
+    return wrap
+
 
 def log_time(f):
-    '''
+    """
     Decorator to time the function call
-    '''
+    """
     def wrap(*args):
-        with Timer() as t: res = f(*args)
-        logging.debug('{0}: {1} ms'.format(f.func_name, t.interval*1000.0))
+        with Timer() as t:
+            res = f(*args)
+        logging.debug('{0}: {1} ms'.format(f.func_name, t.interval * 1000.0))
         return res
 
     wrap.__name__ = f.__name__
@@ -106,6 +109,9 @@ def log_time(f):
 ################################################################################
 
 class Timer:    
+    def __init__(self):
+        pass
+
     def __enter__(self):
         self.start = time.clock()
         return self
@@ -117,13 +123,13 @@ class Timer:
 ################################################################################
 
 def offset(dte, off, period='BD'):
-    '''
+    """
     Offset the input date (a datetime.datetime object) by the amount off
     where the period can be
         BD - business days
         M - months
         Y - years
-    '''
+    """
 
     def apply_offset():
         period_uc = period.upper()
@@ -138,24 +144,28 @@ def offset(dte, off, period='BD'):
         else:
             raise ValueError('Unrecognised period "{0}" in offset function. Use "BD", "M" or "Y"'.format(period))
 
-    def bridge_weekend(dte, day_of_week):
+    def bridge_weekend(bridge_dte, day):
         if off > 0:
-            if day_of_week == 5: return dte + datetime.timedelta(days=2)
-            if day_of_week == 6: return dte + datetime.timedelta(days=1)
+            if day == 5:
+                return bridge_dte + datetime.timedelta(days=2)
+            if day == 6:
+                return bridge_dte + datetime.timedelta(days=1)
         if off < 0:
-            if day_of_week == 5: return dte + datetime.timedelta(days=-1)
-            if day_of_week == 6: return dte + datetime.timedelta(days=-2)
+            if day == 5:
+                return bridge_dte + datetime.timedelta(days=-1)
+            if day == 6:
+                return bridge_dte + datetime.timedelta(days=-2)
         # If the offset is zero, or the day of the week is not a saturday or
         # a sunday, do not adjust. This is just because the direction of 
         # adjustment isn't obvious
-        return dte
+        return bridge_dte
 
-    newdate = apply_offset()
+    new_date = apply_offset()
 
-    day_of_week = newdate.weekday()
+    day_of_week = new_date.weekday()
     if day_of_week in [5, 6]: 
-        newdate = bridge_weekend(newdate, day_of_week)
+        new_date = bridge_weekend(new_date, day_of_week)
 
-    return newdate
+    return new_date
 
 ################################################################################

@@ -15,26 +15,26 @@ MONGO_DB = 'mongo'
 ################################################################################
 
 def get_cache_filename(id):
-    '''
+    """
     Get the filename in the cache associated with id
-    '''
+    """
     return os.path.join(config.CACHE_FOLDER, id) + CACHE_EXT
     
 
 ################################################################################
 
 def get_csv_filename(id):
-    '''
+    """
     Get the filename in the cache associated with id
-    '''
+    """
     return os.path.join(config.CSV_FOLDER, id) + CSV_EXT
 
 ################################################################################
 
 def get_from_cache(id):
-    '''
+    """
     Check whether the series with the input id is present in the cache
-    '''
+    """
     if id is None:
         return False
 
@@ -48,23 +48,23 @@ def get_from_cache(id):
 ################################################################################
 
 def clear_cache(id=None):
-    '''
+    """
     Remove all cache files in the cache folder, or just the specified id
-    '''
+    """
     if id is not None:
         os.remove(get_cache_filename(id))
     else:
         for root, dirs, files in os.walk(config.CACHE_FOLDER):
-            for file in files:
-                if file.endswith(CACHE_EXT):
-                    os.remove(file)                                     
+            for f in files:
+                if f.endswith(CACHE_EXT):
+                    os.remove(f)
 
 ################################################################################
 
 def get_id(loader, loader_args):
-    '''
+    """
     Create the hash of the loader function name and its arguments
-    '''
+    """
     db_client = get_db()
     if db_client is not None:
         return db_client.get_id(loader, loader_args)
@@ -82,11 +82,11 @@ def get_db():
 ################################################################################
 
 def get_time_series(loader, loader_args):
-    '''
+    """
     Interrogate the cache for the requested series
     If it doesn't exit, call the loader function from the data_loader module
     with the dictionary args and add it to the cache
-    '''
+    """
 
     # Get the time series from the cache/db
     # For now we just get back from the cache based on whether the exact
@@ -108,12 +108,12 @@ def get_time_series(loader, loader_args):
         ts = getattr(data_loader, loader)(**loader_args)
 
         # Add the time series to the cache/db
-        # Ticky logic here while we transition to mongo...
+        # Tricky logic here while we transition to mongo...
         # If the id is none, we're using the db but the series is not in
         # the db. Therefore create a record for it in the db and pass the
         # newly created id onto the file cache
         # There's definite scope here for synchronisation between the file 
-        # cache and db meta data to cause compilications. Perhaps the time
+        # cache and db meta data to cause complications. Perhaps the time
         # series should be put in the db too... 
         if id is None:
             db_client = get_db()
@@ -121,7 +121,7 @@ def get_time_series(loader, loader_args):
                 raise Exception('id not set in db mode {0}'.format(config.DB))
             id = db_client.insert(loader, loader_args)
             # If the db as added an object id, remove it, for now
-            if loader_args.has_key(db.OBJECT_ID):
+            if db.OBJECT_ID in loader_args.keys():
                 del loader_args[db.OBJECT_ID]
         utils.serialise_obj(ts, get_cache_filename(id))
 
