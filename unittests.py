@@ -378,13 +378,11 @@ class TestDataRetrievalFunctions(unittest.TestCase):
         # as metadata on the time series, but check 
         # data_loader.download_mock_series for how the test result is 
         # actually created
-        self.assertEqual(loader_args, 
-                result[data_structure.ID])
+        self.assertEqual(loader_args, result[data_structure.ID])
 
         # Check we can now retrieve the id from the cache
         cached_result = data_retrieval.get_from_cache(id)
-        self.assertEqual(loader_args, 
-                cached_result[data_structure.ID])
+        self.assertEqual(loader_args, cached_result[data_structure.ID])
         
         # Remove it from the cache
         data_retrieval.clear_cache(id)

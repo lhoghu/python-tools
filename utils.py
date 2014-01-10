@@ -18,7 +18,7 @@ def isiterable(obj):
 
 ################################################################################
 
-def serialise_obj(obj, filename):
+def s_serialise_obj(obj, filename):
     '''
     Use pickle to store obj in binary format in target filename
     '''
@@ -26,7 +26,7 @@ def serialise_obj(obj, filename):
     with open(filename, 'wb') as f:
         spickle.s_dump(obj, f)
 
-def deserialise_obj(filename):
+def s_deserialise_obj(filename):
     '''
     Use pickle to deserialise object that's been saved in binary format
     '''
@@ -36,6 +36,24 @@ def deserialise_obj(filename):
         for element in spickle.s_load(f):
             results.append(element) 
     return results
+
+################################################################################
+
+def serialise_obj(obj, filename):
+    '''
+    Use pickle to store obj in binary format in target filename
+    '''
+    logging.debug('Serialising object to file ' + filename)
+    with open(filename, 'wb') as f:
+        pickle.dump(obj, f)
+
+def deserialise_obj(filename):
+    '''
+    Use pickle to deserialise object that's been saved in binary format
+    '''
+    logging.debug('Deserialising object from file ' + filename)
+    with open(filename, 'rb') as f:
+        return pickle.load(f)
 
 ################################################################################
 

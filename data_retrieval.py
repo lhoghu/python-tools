@@ -4,6 +4,7 @@ import data_loader
 import config
 import hashlib
 import db
+import logging
 
 ################################################################################
 
