@@ -77,6 +77,9 @@ class TransformTuple(SONManipulator):
         return tuple(document[self.container_key])
 
     def transform_incoming(self, son, collection):
+        if son is None:
+            return son
+
         copy = son.copy()
         for (key, value) in copy.items():
             if isinstance(value, tuple):
@@ -89,6 +92,9 @@ class TransformTuple(SONManipulator):
         return copy
 
     def transform_outgoing(self, son, collection):
+        if son is None:
+            return son
+
         copy = son.copy()
         for (key, value) in copy.items():
             if isinstance(value, dict):
@@ -161,6 +167,8 @@ class MongoClient():
         @param doc: the update values
         @return: a dict describing the outcome of the update
         """
+        transform = TransformTuple()
+        query = transform.transform_incoming(query, collection)
         return self.db[collection].update(query, doc, upsert=True)
 
     def find(self, collection, doc=None):
@@ -171,6 +179,8 @@ class MongoClient():
         return all matches in the collection
         @return: list of matches
         """
+        transform = TransformTuple()
+        doc = transform.transform_incoming(doc, collection)
         cursor = self.db[collection].find(doc)
         return [match for match in cursor]
 
@@ -182,6 +192,8 @@ class MongoClient():
         the doc
         @return: None
         """
+        transform = TransformTuple()
+        doc = transform.transform_incoming(doc, collection)
         self.db[collection].remove(doc)
 
 ################################################################################

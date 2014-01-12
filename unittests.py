@@ -485,7 +485,7 @@ class TestMongoDataRetrievalFunctions(unittest.TestCase):
         doc = dict(tup=t)
         client.insert(collection, doc)
 
-        match = client.find(collection)
+        match = client.find(collection, doc)
         self.assertEqual(1, len(match))
         self.assertEqual(t, match[0]['tup'])
 
@@ -530,7 +530,7 @@ class TestMongoDataRetrievalFunctions(unittest.TestCase):
         }
 
         client.insert(collection, doc)
-        match = client.find(collection)
+        match = client.find(collection, doc)
         self.assertEqual(1, len(match))
 
         for k, _ in doc.iteritems():
