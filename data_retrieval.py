@@ -1,4 +1,5 @@
 import os
+import data_structure
 import utils
 import data_loader
 import config
@@ -81,6 +82,16 @@ def get_db():
 
 ################################################################################
 
+def db_query_string(timeseries_id):
+    query = {}
+    for k, v in timeseries_id.iteritems():
+        if k not in ('start', 'end'):
+            query['{0}.{1}'.format(data_structure.ID, k)] = v
+
+    return query
+
+################################################################################
+
 def get_time_series(loader, loader_args):
     """
     Interrogate the cache for the requested series
@@ -88,44 +99,32 @@ def get_time_series(loader, loader_args):
     with the dictionary args and add it to the cache
     """
 
-    # Get the time series from the cache/db
-    # For now we just get back from the cache based on whether the exact
-    # same call has been made before
-    # TODO add support to interrogate a db for whether the data can be found
-    # in the cache
-    id = get_id(loader, loader_args)
+    client = get_db()
+    if client is not None:
+        # Get the time series from the db
+        query = db_query_string(loader_args)
+        match = client.find(db.TIMESERIES_COLLECTION, query)
+        if len(match) > 0:
+            return match
+        else:
+            # If it's not in the db, get it using the loader function
+            # and add it to the db
+            ts = getattr(data_loader, loader)(**loader_args)
+            client.insert(db.TIMESERIES_COLLECTION, ts)
+            return ts
 
-    def get_ts():
-        if id is not None:
-            return get_from_cache(id)
-        return None
+    else:
+        # Get the time series from the cache
+        id = get_id(loader, loader_args)
+        ts = get_from_cache(id)
 
-    ts = get_ts()
+        # If the time series is not in the cache/db, load it using the loader
+        # function
+        if not ts:
+            ts = getattr(data_loader, loader)(**loader_args)
+            utils.serialise_obj(ts, get_cache_filename(id))
 
-    # If the time series is not in the cache/db, load it using the loader 
-    # function
-    if not ts:
-        ts = getattr(data_loader, loader)(**loader_args)
-
-        # Add the time series to the cache/db
-        # Tricky logic here while we transition to mongo...
-        # If the id is none, we're using the db but the series is not in
-        # the db. Therefore create a record for it in the db and pass the
-        # newly created id onto the file cache
-        # There's definite scope here for synchronisation between the file 
-        # cache and db meta data to cause complications. Perhaps the time
-        # series should be put in the db too... 
-        if id is None:
-            db_client = get_db()
-            if db_client is None:
-                raise Exception('id not set in db mode {0}'.format(config.DB))
-            id = db_client.insert(loader, loader_args)
-            # If the db as added an object id, remove it, for now
-            if db.OBJECT_ID in loader_args.keys():
-                del loader_args[db.OBJECT_ID]
-        utils.serialise_obj(ts, get_cache_filename(id))
-
-    return ts
+        return ts
 
 ################################################################################
 

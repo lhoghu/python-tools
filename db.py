@@ -11,6 +11,8 @@ MONGO_SERVICE = 'mongod'
 MONGO_HOST = 'localhost'
 OBJECT_ID = '_id'
 
+TIMESERIES_COLLECTION = 'timeseries'
+
 ################################################################################
 
 class MongoService():
@@ -167,6 +169,8 @@ class MongoClient():
         @param doc: the update values
         @return: a dict describing the outcome of the update
         """
+        # TODO come back to creation of query objects... probably a
+        # better way to go than transform
         transform = TransformTuple()
         query = transform.transform_incoming(query, collection)
         return self.db[collection].update(query, doc, upsert=True)
@@ -179,6 +183,8 @@ class MongoClient():
         return all matches in the collection
         @return: list of matches
         """
+        # TODO come back to creation of query objects... probably a
+        # better way to go than transform
         transform = TransformTuple()
         doc = transform.transform_incoming(doc, collection)
         cursor = self.db[collection].find(doc)
@@ -192,6 +198,8 @@ class MongoClient():
         the doc
         @return: None
         """
+        # TODO come back to creation of query objects... probably a
+        # better way to go than transform
         transform = TransformTuple()
         doc = transform.transform_incoming(doc, collection)
         self.db[collection].remove(doc)

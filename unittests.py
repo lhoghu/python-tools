@@ -375,11 +375,11 @@ class TestDataRetrievalFunctions(unittest.TestCase):
         # as metadata on the time series, but check 
         # data_loader.download_mock_series for how the test result is 
         # actually created
-        self.assertEqual(loader_args, result[data_structure.ID])
+        self.assertEqual(loader_args, result[0][data_structure.ID])
 
         # Check we can now retrieve the id from the cache
         cached_result = data_retrieval.get_from_cache(series_id)
-        self.assertEqual(loader_args, cached_result[data_structure.ID])
+        self.assertEqual(loader_args, cached_result[0][data_structure.ID])
 
         # Remove it from the cache
         data_retrieval.clear_cache(series_id)
@@ -392,7 +392,6 @@ class TestMongoDataRetrievalFunctions(unittest.TestCase):
     mongo_folder = './testdata/mongo'
     mongo_db = 'mongo'
     mongo_service = None
-    cache_id = ''
 
     @classmethod
     def setUpClass(cls):
@@ -404,25 +403,14 @@ class TestMongoDataRetrievalFunctions(unittest.TestCase):
 
         cls.mongo_service = db.MongoService()
         cls.mongo_service.start()
-        import time
 
+        # Give the server a chance to start...
+        import time
         time.sleep(1)
 
     @classmethod
     def tearDownClass(cls):
-        if cls.cache_id != '':
-            db_client = data_retrieval.get_db()
-
-            import bson.objectid
-
-            db_client.db[config.MONGO_TIMESERIES_DB]['download_mock_series'].remove(
-                {'_id': bson.objectid.ObjectId(cls.cache_id)})
-
         cls.mongo_service.stop()
-
-        cache_file = data_retrieval.get_cache_filename(cls.cache_id)
-        if os.path.exists(cache_file):
-            os.remove(cache_file)
         config.MONGO_FOLDER = cls.restore_mongo_folder
         config.MONGO_DB = cls.restore_db
 
@@ -536,7 +524,6 @@ class TestMongoDataRetrievalFunctions(unittest.TestCase):
         for k, _ in doc.iteritems():
             self.assertEqual(doc[k], match[0][k])
 
-    @unittest.skip('Ignore during mongo dev')
     def test_get_time_series_mongo(self):
         """
         End to end test of the following functions
@@ -553,45 +540,38 @@ class TestMongoDataRetrievalFunctions(unittest.TestCase):
         }
 
         # Check we can load a db client instance
-        db_client = data_retrieval.get_db()
-        self.assertIsNotNone(db_client)
+        client = data_retrieval.get_db()
+        self.assertIsNotNone(client)
+        collection = db.TIMESERIES_COLLECTION
 
-        # Check the id is not in the db to start with
-        id = data_retrieval.get_id(loader, loader_args)
-        if id is not None:
-            db_client.remove(loader, loader_args)
-
-        id = data_retrieval.get_id(loader, loader_args)
-        self.assertIsNone(id)
+        # Clear out the collection
+        client.remove(collection)
 
         # Retrieve the series
         result = data_retrieval.get_time_series(loader, loader_args)
-
-        # Check the id now exists in the db
-        id = data_retrieval.get_id(loader, loader_args)
-        self.assertIsNotNone(id)
-        self.cache_id = id
 
         # Check the contents look ok: expect that the loader args are set
         # as metadata on the time series, but check 
         # data_loader.download_mock_series for how the test result is 
         # actually created
-        self.assertEqual(loader_args, result[data_structure.ID])
+        self.assertEqual(1, len(result))
+        self.assertEqual(loader_args, result[0][data_structure.ID])
 
-        # Check we can now retrieve the id from the cache
-        cached_result = data_retrieval.get_from_cache(id)
-        self.assertEqual(loader_args, cached_result[data_structure.ID])
+        query = {
+            '{0}.symbol'.format(data_structure.ID): loader_args['symbol']
+        }
+        # Check the series is in the db
+        series = client.find(collection, query)
+        self.assertEqual(1, len(series))
 
-        # Remove it from the cache
-        data_retrieval.clear_cache(id)
+        self.assertEqual(loader_args, series[0][data_structure.ID])
 
-        # Check it's gone from the cache...
-        self.assertFalse(data_retrieval.get_from_cache(id))
+        # Remove it from the db
+        client.remove(collection, query)
 
-        # ... and the db
-        db_client.remove(loader, loader_args)
-        id = data_retrieval.get_id(loader, loader_args)
-        self.assertIsNone(id)
+        # Check it's gone from the db
+        series = client.find(collection, query)
+        self.assertEqual(0, len(series))
 
 ################################################################################
 

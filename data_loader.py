@@ -292,14 +292,14 @@ def download_yahoo_quote():
 
 def download_yahoo_timeseries(symbol, start, end):
     data = download_yahoo_timeseries_raw(symbol, start, end)
-    return data_structure.create_time_series(
+    return [data_structure.create_time_series(
         {
             'symbol': symbol,
             'start': start,
             'end': end
         },
         transform_yahoo_timeseries(data),
-        {})
+        {})]
 
 ################################################################################
 
@@ -339,14 +339,14 @@ def transform_yahoo_timeseries(data):
 
 def download_google_timeseries(symbol, start, end):
     data = download_google_timeseries_raw(symbol, start, end)
-    return data_structure.create_time_series(
+    return [data_structure.create_time_series(
         {
             'symbol': symbol,
             'start': start,
             'end': end
         },
         transform_google_timeseries(data),
-        {})
+        {})]
 
 ################################################################################
 
@@ -516,7 +516,7 @@ def download_mock_series(symbol, start, end):
         'end': end
     }
 
-    return data_structure.create_time_series(id, [], {})
+    return [data_structure.create_time_series(id, [], {})]
 
 ################################################################################
 

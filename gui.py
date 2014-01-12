@@ -213,7 +213,7 @@ def get_data(date, symbol):
     loader = 'download_yahoo_timeseries'
 
     ts = data_retrieval.get_time_series(loader, args)
-    dates, values = zip(*ts[data_structure.TIMESERIES])
+    dates, values = zip(*ts[0][data_structure.TIMESERIES])
     return dict(dates=dates, values=[float(v) for v in values])
 
 ################################################################################
