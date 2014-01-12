@@ -408,12 +408,13 @@ class TestMongoDataRetrievalFunctions(unittest.TestCase):
         time.sleep(1)
 
     def tearDown(self):
-        db_client = data_retrieval.get_db()
+        if self.cache_id != '':
+            db_client = data_retrieval.get_db()
 
-        import bson.objectid
+            import bson.objectid
 
-        db_client.db[config.MONGO_TIMESERIES_DB]['download_mock_series'].remove(
-            {'_id': bson.objectid.ObjectId(self.cache_id)})
+            db_client.db[config.MONGO_TIMESERIES_DB]['download_mock_series'].remove(
+                {'_id': bson.objectid.ObjectId(self.cache_id)})
 
         self.mongo_service.stop()
 
@@ -423,6 +424,117 @@ class TestMongoDataRetrievalFunctions(unittest.TestCase):
         config.MONGO_FOLDER = self.restore_mongo_folder
         config.MONGO_DB = self.restore_db
 
+    def test_insert_find(self):
+        """
+        Test basis insert/find mechanic: insert a doc and check that
+        find returns it
+        """
+        client = db.get()
+        collection = 'test_insert_find'
+        doc_1 = dict(a=8, b='text', c=True, d=[5.654, 2.757, 3.495])
+        doc_2 = dict(b='string', c=True, d=[4.237, 'bleep'])
+
+        # Make sure the collection is empty to start with
+        client.remove(collection)
+
+        match = client.find(collection, doc_1)
+        self.assertEqual(0, len(match))
+
+        # Insert the doc
+        client.insert(collection, doc_1)
+
+        # Check it's gone in
+        match = client.find(collection, doc_1)
+        self.assertEqual(1, len(match))
+        for k, _ in doc_1.iteritems():
+            self.assertEqual(doc_1[k], match[0][k])
+
+        # Insert a second doc
+        client.insert(collection, doc_2)
+
+        # Check it's gone in
+        match = client.find(collection, doc_2)
+        self.assertEqual(1, len(match))
+        for k, _ in doc_2.iteritems():
+            self.assertEqual(doc_2[k], match[0][k])
+
+        # Check we can still retrieve doc_1
+        match = client.find(collection, doc_1)
+        self.assertEqual(1, len(match))
+        for k, _ in doc_1.iteritems():
+            self.assertEqual(doc_1[k], match[0][k])
+
+        # Check we have two docs in there (i.e. that the find
+        # with no doc arg is working
+        match = client.find(collection)
+        self.assertEqual(2, len(match))
+
+        client.remove(collection)
+        match = client.find(collection)
+        self.assertEqual(0, len(match))
+
+    def test_tuple(self):
+        client = db.get()
+        collection = 'test_tuple'
+
+        client.remove(collection)
+
+        t = ('a', 3)
+        doc = dict(tup=t)
+        client.insert(collection, doc)
+
+        match = client.find(collection)
+        self.assertEqual(1, len(match))
+        self.assertEqual(t, match[0]['tup'])
+
+        client.remove(collection)
+
+    def test_list_tuple(self):
+        client = db.get()
+        collection = 'test_list_tuple'
+
+        client.remove(collection)
+
+        list_of_tuple = [('a', 3), (datetime.datetime(2014, 1, 1), True)]
+        doc = dict(tup=list_of_tuple)
+        client.insert(collection, doc)
+
+        match = client.find(collection)
+        self.assertEqual(1, len(match))
+        self.assertEqual(list_of_tuple, match[0]['tup'])
+
+        client.remove(collection)
+
+    def test_dict_of_list_of_tuple(self):
+        client = db.get()
+        collection = 'test_dict_of_list_of_tuple'
+
+        client.remove(collection)
+
+        doc = {
+            'id': {
+                'date': datetime.datetime(2014, 1, 1),
+                'label': 'text'
+            },
+            'tuple_content': {
+                'a_tuple': (4, 7),
+                'a_boolean': True
+            },
+            'list_tuple_content': [(3, 2), (6, 3), (9.3805, 2.126)],
+            'nested_tuple_content': ['a string', {
+                'a_key': 'a value',
+                'a_list_of_tuples': [('ein', 3, False), (4, 2)]
+            }]
+        }
+
+        client.insert(collection, doc)
+        match = client.find(collection)
+        self.assertEqual(1, len(match))
+
+        for k, _ in doc.iteritems():
+            self.assertEqual(doc[k], match[0][k])
+
+    @unittest.skip('Ignore during mongo dev')
     def test_get_time_series_mongo(self):
         """
         End to end test of the following functions

@@ -3,6 +3,7 @@ import subprocess
 import config
 import logging
 import bson.objectid
+from pymongo.son_manipulator import SONManipulator
 
 ################################################################################
 
@@ -51,38 +52,137 @@ class MongoService():
 
 ################################################################################
 
+def get():
+    """
+    Get a mongo client instance
+    """
+    return MongoClient()
+
+################################################################################
+
+class TransformTuple(SONManipulator):
+
+    type_key = '_type'
+    tuple_type = 'tuple'
+    container_key = 'as_list'
+
+    def encode_tuple(self, tup):
+        return {
+            self.type_key: self.tuple_type,
+            self.container_key: list(tup)
+        }
+
+    def decode_tuple(self, document):
+        assert document[self.type_key] == self.tuple_type
+        return tuple(document[self.container_key])
+
+    def transform_incoming(self, son, collection):
+        copy = son.copy()
+        for (key, value) in copy.items():
+            if isinstance(value, tuple):
+                copy[key] = self.encode_tuple(value)
+            # Make sure we recurse into sub-docs
+            elif isinstance(value, dict):
+                copy[key] = self.transform_incoming(value, collection)
+            elif isinstance(value, list):
+                copy[key] = self.transform_incoming_list(value, collection)
+        return copy
+
+    def transform_outgoing(self, son, collection):
+        copy = son.copy()
+        for (key, value) in copy.items():
+            if isinstance(value, dict):
+                if self.type_key in value:
+                    if value[self.type_key] == self.tuple_type:
+                        copy[key] = self.decode_tuple(value)
+                else:
+                    # Make sure we recurse into sub-docs
+                    copy[key] = self.transform_outgoing(value, collection)
+            if isinstance(value, list):
+                copy[key] = self.transform_outgoing_list(value, collection)
+        return copy
+
+    def transform_incoming_list(self, lst, collection):
+        def transform_element(el):
+            if isinstance(el, dict):
+                return self.transform_incoming(el, collection)
+            elif isinstance(el, list):
+                return self.transform_incoming_list(el, collection)
+            elif isinstance(el, tuple):
+                return self.encode_tuple(el)
+            return el
+
+        return [transform_element(element) for element in lst]
+
+    def transform_outgoing_list(self, lst, collection):
+        def transform_element(el):
+            if isinstance(el, dict):
+                if self.type_key in el:
+                    if el[self.type_key] == self.tuple_type:
+                        return self.decode_tuple(el)
+                return self.transform_outgoing(el, collection)
+            elif isinstance(el, list):
+                return self.transform_outgoing_list(el, collection)
+            return el
+
+        return [transform_element(element) for element in lst]
+
+
+################################################################################
+
 class MongoClient():
 
     def __init__(self):
         self.client = pymongo.MongoClient(MONGO_HOST, config.MONGOD_PORT)
         self.db = self.client.MONGO_TIMESERIES_DB
+        self.db.add_son_manipulator(TransformTuple())
 
     def __del__(self):
         self.client.disconnect()
 
-    def get_id(self, loader, loader_args):
+    def insert(self, collection, doc):
         """
-        Return the object id associated with a document if it
-        exists in the db, otherwise return None
-        """
-        document = self.db.loader.find_one(loader_args)
-        if document is not None:
-            return str(document[OBJECT_ID])
-        return None
-
-    def insert(self, loader, loader_args):
-        """
-        Insert the loader_args in a document into a collection
-        with the name of the loader
+        Insert the doc into the named collection
+        See http://api.mongodb.org/python/current/api/pymongo/collection.html
 
         Return the object id of the document
         """
-        object_id = self.db.loader.insert(loader_args)
+        object_id = self.db[collection].insert(doc)
         return str(object_id)
 
-    def remove(self, loader, loader_args):
-        id = self.get_id(loader, loader_args)
-        self.db.loader.remove({OBJECT_ID: bson.objectid.ObjectId(id)})
+    def update(self, collection, query, doc):
+        """
+        Insert the doc into the collection, using the query to find a
+        match. If a match is found, the match is updated with the doc.
+        If multiple matches are found, only a single doc is updated.
+        If no matches are found, a new document is created
+        See http://api.mongodb.org/python/current/api/pymongo/collection.html
+        @param query: a dict describing the document to be updated
+        @param doc: the update values
+        @return: a dict describing the outcome of the update
+        """
+        return self.db[collection].update(query, doc, upsert=True)
+
+    def find(self, collection, doc=None):
+        """
+        Find matches for the doc in the collection
+        @param collection: string name of the collection to search
+        @param doc: python dictionary search parameters. If None, will
+        return all matches in the collection
+        @return: list of matches
+        """
+        cursor = self.db[collection].find(doc)
+        return [match for match in cursor]
+
+    def remove(self, collection, doc=None):
+        """
+        Remove all documents from a collection
+        @param collection: The name of the collection to delete from
+        @param doc: if doc is not None, remove only documents that match
+        the doc
+        @return: None
+        """
+        self.db[collection].remove(doc)
 
 ################################################################################
 

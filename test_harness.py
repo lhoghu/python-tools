@@ -1,6 +1,8 @@
 import logging
 import data_loader
 import matplotlib.pyplot as pyplot
+import data_structure
+import db
 import utils
 import datetime
 import data_retrieval
@@ -30,30 +32,30 @@ def line_plot(dates, values):
 def get_bbg_id():
     t = datetime.datetime.today()
     today_date = datetime.datetime(t.year, t.month, t.day)
-    start_date =  today_date - datetime.timedelta(10)
-    end_date = today_date  - datetime.timedelta(1)
+    start_date = today_date - datetime.timedelta(10)
+    end_date = today_date - datetime.timedelta(1)
     index_list = ('SPX Index', 'DJI Index', 'RTY Index')
 
     for index in index_list:
         index_id = data_retrieval.get_id(
-            'download_bbg_timeseries', 
+            'download_bbg_timeseries',
             {
-                'symbol': index, 
-                'start': start_date, 
+                'symbol': index,
+                'start': start_date,
                 'end': end_date,
-                'field' : 'INDX_MWEIGHT_HIST'
+                'field': 'INDX_MWEIGHT_HIST'
             })
         print index_id;
 
 ################################################################################
 
 def get_bbg_data():
-    logging.basicConfig(filename='debug.log',level=logging.DEBUG)
+    logging.basicConfig(filename='debug.log', level=logging.DEBUG)
 
     t = datetime.datetime(2014, 1, 4)
     today_date = datetime.datetime(t.year, t.month, t.day)
-    start_date =  datetime.datetime(1990, 1, 1)
-    end_date = today_date  - datetime.timedelta(1)
+    start_date = datetime.datetime(1990, 1, 1)
+    end_date = today_date - datetime.timedelta(1)
     index_list = ('SPX Index', 'DJI Index', 'RTY Index')
     # index_list = ('SPX Index', 'DJI Index', 'RTY Index', 'RAY Index')
     equity_set = set()
@@ -65,22 +67,22 @@ def get_bbg_data():
             field = 'INDX_MWEIGHT_HIST'
 
         idx_data = data_retrieval.get_time_series(
-            'download_bbg_timeseries', 
+            'download_bbg_timeseries',
             {
-                'symbol': index, 
-                'start': start_date, 
+                'symbol': index,
+                'start': start_date,
                 'end': end_date,
-                'field' : field
+                'field': field
             })
         if idx_data is not None:
             utils.serialise_csv(idx_data, data_retrieval.get_csv_filename('_'.join((index, 'COMPOSITION'))))
-            for date,equity_list in idx_data:
+            for date, equity_list in idx_data:
                 equity_set.update(equity_list)
 
     fields = (
-        'PX_LAST', 
-        'PX_OFFICIAL_CLOSE', 
-        'PX_OPEN', 
+        'PX_LAST',
+        'PX_OFFICIAL_CLOSE',
+        'PX_OPEN',
         'PX_LAST',
         'PX_OPEN',
         'PX_LOW',
@@ -115,26 +117,27 @@ def get_bbg_data():
     equity_list = list(equity_set)
     random.shuffle(equity_list)
     for equity in equity_list:
-        equity = equity + " Equity"
+        equity += " Equity"
         for field in fields:
             equ_data = data_retrieval.get_time_series(
-                'download_bbg_timeseries', 
+                'download_bbg_timeseries',
                 {
-                    'symbol': equity, 
-                    'start': start_date, 
+                    'symbol': equity,
+                    'start': start_date,
                     'end': end_date,
-                    'field' : field
+                    'field': field
                 })
             if equ_data is not None:
                 utils.serialise_csv(equ_data, data_retrieval.get_csv_filename('_'.join((equity, field))))
 
+
 def get_bbg_spxdata():
-    logging.basicConfig(filename='debug.log',level=logging.DEBUG)
+    logging.basicConfig(filename='debug.log', level=logging.DEBUG)
 
     t = datetime.datetime(2014, 1, 4)
     today_date = datetime.datetime(t.year, t.month, t.day)
-    start_date =  datetime.datetime(1990, 1, 1)
-    end_date = today_date  - datetime.timedelta(1)
+    start_date = datetime.datetime(1990, 1, 1)
+    end_date = today_date - datetime.timedelta(1)
     index_list = ('SPX Index',)
     equity_set = set()
     for index in index_list:
@@ -145,22 +148,22 @@ def get_bbg_spxdata():
             field = 'INDX_MWEIGHT_HIST'
 
         idx_data = data_retrieval.get_time_series(
-            'download_bbg_timeseries', 
+            'download_bbg_timeseries',
             {
-                'symbol': index, 
-                'start': start_date, 
+                'symbol': index,
+                'start': start_date,
                 'end': end_date,
-                'field' : field
+                'field': field
             })
         if idx_data is not None:
             utils.serialise_csv(idx_data, data_retrieval.get_csv_filename('_'.join((index, 'COMPOSITION'))))
-            for date,equity_list in idx_data:
+            for date, equity_list in idx_data:
                 equity_set.update(equity_list)
 
     fields = (
-        'PX_LAST', 
-        'PX_OFFICIAL_CLOSE', 
-        'PX_OPEN', 
+        'PX_LAST',
+        'PX_OFFICIAL_CLOSE',
+        'PX_OPEN',
         'PX_LAST',
         'PX_OPEN',
         'PX_LOW',
@@ -195,15 +198,15 @@ def get_bbg_spxdata():
     equity_list = list(equity_set)
     random.shuffle(equity_list)
     for equity in equity_list:
-        equity = equity + " Equity"
+        equity += " Equity"
         for field in fields:
             equ_data = data_retrieval.get_time_series(
-                'download_bbg_timeseries', 
+                'download_bbg_timeseries',
                 {
-                    'symbol': equity, 
-                    'start': start_date, 
+                    'symbol': equity,
+                    'start': start_date,
                     'end': end_date,
-                    'field' : field
+                    'field': field
                 })
             if equ_data is not None:
                 utils.serialise_csv(equ_data, data_retrieval.get_csv_filename('_'.join((equity, field))))
@@ -217,31 +220,31 @@ def get_bbg_spxdata():
 
 def linear_reg():
     ibm_data = data_retrieval.get_time_series(
-            'download_yahoo_timeseries', 
-            {
-                'symbol': 'IBM', 
-                'start': datetime.datetime(2003, 11, 11), 
-                'end': datetime.datetime(2013, 11, 11)
-            })
+        'download_yahoo_timeseries',
+        {
+            'symbol': 'IBM',
+            'start': datetime.datetime(2003, 11, 11),
+            'end': datetime.datetime(2013, 11, 11)
+        })
 
     spx_data = data_retrieval.get_time_series(
-            'download_yahoo_timeseries', 
-            {
-                'symbol': '^GSPC', 
-                'start': datetime.datetime(2003, 11, 11), 
-                'end': datetime.datetime(2013, 11, 11)
-            })
+        'download_yahoo_timeseries',
+        {
+            'symbol': '^GSPC',
+            'start': datetime.datetime(2003, 11, 11),
+            'end': datetime.datetime(2013, 11, 11)
+        })
 
     series = zip(*timeseries.common_dates(
-            ibm_data['IBM'][data_loader.TIMESERIES], 
-            spx_data['^GSPC'][data_loader.TIMESERIES]))
+        ibm_data[data_structure.TIMESERIES],
+        spx_data[data_structure.TIMESERIES]))
 
     ibm = [float(val) for val in series[1]]
     spx = [float(val) for val in series[2]]
-    slope, intercept, r_value, _, _ = algorithms.linreg(ibm, spx) 
+    slope, intercept, r_value, _, _ = algorithms.linreg(ibm, spx)
     print('Beta: {0}'.format(intercept))
     print('Slope: {0}'.format(slope))
-    print('RSq: {0}'.format(r_value**2))
+    print('RSq: {0}'.format(r_value ** 2))
 
     series_for_charting = [('IBM', ibm), ('SPX', spx)]
     charts.line(series[0], series_for_charting)
@@ -265,39 +268,43 @@ def time_loops():
     # Test 1 - note this version actually returns the tuple that contains
     # the min
     ts = gen_tuple_series(1000000)
-    with utils.Timer() as t1: min(ts, key=lambda (_, v): v)
-    print('Using key: {0} ms'.format(t1.interval*1000.0))
+    with utils.Timer() as t1:
+        min(ts, key=lambda (_, v): v)
+    print('Using key: {0} ms'.format(t1.interval * 1000.0))
 
     # Test 2 - this version returns only the min value
     ts = gen_tuple_series(1000000)
-    with utils.Timer() as t2: min(v for _, v in ts)
-    print('Using genexp: {0} ms'.format(t2.interval*1000.0))
+    with utils.Timer() as t2:
+        min(v for _, v in ts)
+    print('Using genexp: {0} ms'.format(t2.interval * 1000.0))
 
     # Test 3 - repeat the test where both return the same object
     ts = gen_series(1000000)
-    with utils.Timer() as t1: min(ts)
-    print('Raw min: {0} ms'.format(t1.interval*1000.0))
+    with utils.Timer() as t1:
+        min(ts)
+    print('Raw min: {0} ms'.format(t1.interval * 1000.0))
 
     # Test 4
     ts = gen_series(1000000)
-    with utils.Timer() as t2: min(v for v in ts)
-    print('Using genexp: {0} ms'.format(t2.interval*1000.0))
+    with utils.Timer() as t2:
+        min(v for v in ts)
+    print('Using genexp: {0} ms'.format(t2.interval * 1000.0))
 
 ################################################################################
 
 def get_series():
     args = {
-            'symbol': 'IBM', 
-            'start': datetime.datetime(2003, 11, 11), 
-            'end': datetime.datetime(2013, 11, 11)
-            }
+        'symbol': 'IBM',
+        'start': datetime.datetime(2003, 11, 11),
+        'end': datetime.datetime(2013, 11, 11)
+    }
 
     loader = 'download_yahoo_timeseries'
 
     ts = data_retrieval.get_time_series(loader, args)
-    dates, values = zip(*ts[args['symbol']][data_loader.TIMESERIES])
+    dates, values = zip(*ts[data_structure.TIMESERIES])
     line_plot(dates, values)
-    
+
 ################################################################################
 
 def plot_treasuries():
@@ -308,13 +315,13 @@ def plot_treasuries():
 
 def get_yahoo_stock(symbol, start, end):
     data = data_loader.download_yahoo_timeseries(symbol, start, end)
-    return zip(*data[symbol][data_loader.TIMESERIES])
+    return zip(*data[data_structure.TIMESERIES])
 
 ################################################################################
 
 def get_google_stock(symbol, start, end):
     data = data_loader.download_google_timeseries(symbol, start, end)
-    return zip(*data[symbol][data_loader.TIMESERIES])
+    return zip(*data[data_structure.TIMESERIES])
 
 ################################################################################
 
@@ -324,11 +331,21 @@ def plot_stock(symbol, start, end):
 
 ################################################################################
 
+def insert_to_mongo():
+    client = db.MongoClient()
+    collection = 'test'
+    doc = dict(a=3, b='text', c=True, timestamp=datetime.datetime.now())
+    client.insert(collection, doc)
+    matches = client.find(collection)
+    for match in matches:
+        print(match)
+
+################################################################################
+
 def test_time_series_record():
-     
     doc = data_loader.download_mock_series(
-        'sym', 
-        datetime.datetime(2014, 1, 1), 
+        'sym',
+        datetime.datetime(2014, 1, 1),
         datetime.datetime(2014, 1, 4))
 
     print(doc)
@@ -338,9 +355,11 @@ def test_time_series_record():
 def generate_test_transform_treasuries_data():
     data = data_loader.download_csv(data_loader.treasuries_config['TREASURIES_URL'])
     nb_rows = len(data)
-    test_data = data[:10] + data[nb_rows-10:]
+    test_data = data[:10] + data[nb_rows - 10:]
     utils.serialise_obj(test_data, 'testdata/test_transform_treasuries_data.data.py')
-    utils.serialise_obj(data_loader.transform_treasuries_data(test_data), 'testdata/test_transform_treasuries_data.result.py')
+    utils.serialise_obj(data_loader.transform_treasuries_data(test_data),
+                        'testdata/test_transform_treasuries_data.result.py')
+
 
 def generate_test_transform_yahoo_timeseries():
     symbol = 'IBM'
@@ -348,7 +367,9 @@ def generate_test_transform_yahoo_timeseries():
     end = datetime.datetime(2013, 11, 11)
     data = data_loader.download_yahoo_timeseries_raw(symbol, start, end)
     utils.serialise_obj(data, 'testdata/test_transform_yahoo_timeseries.data.py')
-    utils.serialise_obj(data_loader.transform_yahoo_timeseries(data), 'testdata/test_transform_yahoo_timeseries.result.py')
+    utils.serialise_obj(data_loader.transform_yahoo_timeseries(data),
+                        'testdata/test_transform_yahoo_timeseries.result.py')
+
 
 def generate_test_transform_google_timeseries():
     symbol = 'GOOG'
@@ -356,7 +377,8 @@ def generate_test_transform_google_timeseries():
     end = datetime.datetime(2013, 11, 11)
     data = data_loader.download_google_timeseries_raw(symbol, start, end)
     utils.serialise_obj(data, 'testdata/test_transform_google_timeseries.data.py')
-    utils.serialise_obj(data_loader.transform_google_timeseries(data), 'testdata/test_transform_google_timeseries.result.py')
+    utils.serialise_obj(data_loader.transform_google_timeseries(data),
+                        'testdata/test_transform_google_timeseries.result.py')
 
 ################################################################################
 
@@ -367,15 +389,16 @@ if __name__ == '__main__':
     #         'IBM', 
     #         datetime.datetime(2003, 11, 11), 
     #         datetime.datetime(2013, 11, 11))
-    generate_test_transform_treasuries_data()
-    generate_test_transform_google_timeseries()
-    generate_test_transform_yahoo_timeseries()
+    # generate_test_transform_treasuries_data()
+    # generate_test_transform_google_timeseries()
+    # generate_test_transform_yahoo_timeseries()
     # get_series()
     # linear_reg()
     # time_loops()
     # get_bbg_data()
-    #get_bbg_id()
+    # get_bbg_id()
     # test_time_series_record()
+    insert_to_mongo()
 
     print "done"
 
