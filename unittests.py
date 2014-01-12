@@ -275,6 +275,7 @@ class TestTimeseriesFunctions(unittest.TestCase):
 ################################################################################
 
 class TestDataLoaderFunctions(unittest.TestCase):
+
     data_folder = './testdata'
 
     def test_transform_treasuries_data(self):
@@ -333,6 +334,16 @@ class TestDataRetrievalFunctions(unittest.TestCase):
     # the cache
     cache_folder = './testdata/cache'
     cache_id = ''
+    file_db = 'file'
+
+    @classmethod
+    def setUpClass(cls):
+        cls.restore_db = config.DB
+        config.DB = cls.file_db
+
+    @classmethod
+    def tearDownClass(cls):
+        config.DB = cls.restore_db
 
     def setUp(self):
         self.restore_cache_folder = config.CACHE_FOLDER
@@ -412,7 +423,7 @@ class TestMongoDataRetrievalFunctions(unittest.TestCase):
     def tearDownClass(cls):
         cls.mongo_service.stop()
         config.MONGO_FOLDER = cls.restore_mongo_folder
-        config.MONGO_DB = cls.restore_db
+        config.DB = cls.restore_db
 
     def test_insert_find(self):
         """

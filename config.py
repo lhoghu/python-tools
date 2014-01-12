@@ -1,7 +1,7 @@
 CACHE_FOLDER = 'cache'
 CSV_FOLDER = 'csv'
 
-DB = 'file'
+DB = 'mongo'
 
 MONGO_FOLDER = 'mongo'
 MONGOD_PORT = 27021
