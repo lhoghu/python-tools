@@ -394,35 +394,37 @@ class TestMongoDataRetrievalFunctions(unittest.TestCase):
     mongo_service = None
     cache_id = ''
 
-    def setUp(self):
-        self.restore_mongo_folder = config.MONGO_FOLDER
-        config.MONGO_FOLDER = self.mongo_folder
+    @classmethod
+    def setUpClass(cls):
+        cls.restore_mongo_folder = config.MONGO_FOLDER
+        config.MONGO_FOLDER = cls.mongo_folder
 
-        self.restore_db = config.DB
-        config.DB = self.mongo_db
+        cls.restore_db = config.DB
+        config.DB = cls.mongo_db
 
-        self.mongo_service = db.MongoService()
-        self.mongo_service.start()
+        cls.mongo_service = db.MongoService()
+        cls.mongo_service.start()
         import time
 
         time.sleep(1)
 
-    def tearDown(self):
-        if self.cache_id != '':
+    @classmethod
+    def tearDownClass(cls):
+        if cls.cache_id != '':
             db_client = data_retrieval.get_db()
 
             import bson.objectid
 
             db_client.db[config.MONGO_TIMESERIES_DB]['download_mock_series'].remove(
-                {'_id': bson.objectid.ObjectId(self.cache_id)})
+                {'_id': bson.objectid.ObjectId(cls.cache_id)})
 
-        self.mongo_service.stop()
+        cls.mongo_service.stop()
 
-        cache_file = data_retrieval.get_cache_filename(self.cache_id)
+        cache_file = data_retrieval.get_cache_filename(cls.cache_id)
         if os.path.exists(cache_file):
             os.remove(cache_file)
-        config.MONGO_FOLDER = self.restore_mongo_folder
-        config.MONGO_DB = self.restore_db
+        config.MONGO_FOLDER = cls.restore_mongo_folder
+        config.MONGO_DB = cls.restore_db
 
     def test_insert_find(self):
         """
