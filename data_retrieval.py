@@ -66,10 +66,6 @@ def get_id(loader, loader_args):
     """
     Create the hash of the loader function name and its arguments
     """
-    db_client = get_db()
-    if db_client is not None:
-        return db_client.get_id(loader, loader_args)
-
     return hashlib.sha1('{0}{1}'.format(loader, loader_args)).hexdigest()
 
 ################################################################################
