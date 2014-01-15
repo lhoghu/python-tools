@@ -425,6 +425,14 @@ class TestMongoDataRetrievalFunctions(unittest.TestCase):
         config.MONGO_FOLDER = cls.restore_mongo_folder
         config.DB = cls.restore_db
 
+    def assert_dict(self, dict1, dict2):
+        """
+        Iterate over all keys in dict1 and assert the values
+        equal the matching key in dict2
+        """
+        for k, _ in dict1.iteritems():
+            self.assertEqual(dict1[k], dict2[k])
+
     def test_insert_find(self):
         """
         Test basis insert/find mechanic: insert a doc and check that
@@ -447,8 +455,7 @@ class TestMongoDataRetrievalFunctions(unittest.TestCase):
         # Check it's gone in
         match = client.find(collection, doc_1)
         self.assertEqual(1, len(match))
-        for k, _ in doc_1.iteritems():
-            self.assertEqual(doc_1[k], match[0][k])
+        self.assert_dict(doc_1, match[0])
 
         # Insert a second doc
         client.insert(collection, doc_2)
@@ -456,14 +463,12 @@ class TestMongoDataRetrievalFunctions(unittest.TestCase):
         # Check it's gone in
         match = client.find(collection, doc_2)
         self.assertEqual(1, len(match))
-        for k, _ in doc_2.iteritems():
-            self.assertEqual(doc_2[k], match[0][k])
+        self.assert_dict(doc_2, match[0])
 
         # Check we can still retrieve doc_1
         match = client.find(collection, doc_1)
         self.assertEqual(1, len(match))
-        for k, _ in doc_1.iteritems():
-            self.assertEqual(doc_1[k], match[0][k])
+        self.assert_dict(doc_1, match[0])
 
         # Check we have two docs in there (i.e. that the find
         # with no doc arg is working
@@ -532,8 +537,105 @@ class TestMongoDataRetrievalFunctions(unittest.TestCase):
         match = client.find(collection, doc)
         self.assertEqual(1, len(match))
 
-        for k, _ in doc.iteritems():
-            self.assertEqual(doc[k], match[0][k])
+        self.assert_dict(doc, match[0])
+
+    def test_update(self):
+        client = db.get()
+        collection = 'test_update'
+
+        client.remove(collection)
+
+        initial_doc = {
+            'id': {
+                'label': 'my label',
+                'field': 'my field'
+            },
+            'list_tuples': [('a', 1), ('b', 2), ('c', 3)]
+        }
+
+        # Check update inserts the initial doc in the absence of any
+        # match
+        client.update(collection, initial_doc, initial_doc)
+        match = client.find(collection)
+        self.assertEqual(1, len(match))
+        self.assert_dict(initial_doc, match[0])
+
+        # Uses the $set operator to update specified keys on the
+        # matching doc. See
+        # http://docs.mongodb.org/manual/reference/operator/update/set/#up._S_set
+        append_doc = {
+            '$set': {
+                'new_key': 'new key'
+            }
+        }
+
+        # Check the update appends to the matching doc
+        client.update(collection, initial_doc, append_doc)
+        match = client.find(collection)
+        self.assertEqual(1, len(match))
+
+        appended_initial_doc = match[0]
+        self.assert_dict(initial_doc, appended_initial_doc)
+        self.assert_dict(append_doc['$set'], appended_initial_doc)
+
+        second_doc = {
+            'id': {
+                'label': 'my label',
+                'field': 'special field'
+            },
+            'list_tuples': [('d', 4), ('e', 5), ('f', 6)],
+            'bonus_key': 'bonus string'
+        }
+
+        # Check update creates a second doc in the absence of a match,
+        # now that there are other docs in the db
+        client.update(collection, second_doc, second_doc)
+        match = client.find(collection)
+        self.assertEqual(2, len(match))
+
+        match = client.find(collection, second_doc)
+        self.assertEqual(1, len(match))
+        self.assert_dict(second_doc, match[0])
+
+        # Check we can update the second doc in isolation
+        client.update(collection, second_doc, append_doc)
+        match = client.find(collection)
+        self.assertEqual(2, len(match))
+
+        match = client.find(collection, second_doc)
+        self.assert_dict(second_doc, match[0])
+        self.assert_dict(append_doc['$set'], match[0])
+
+        # (check the initial doc is not changed in the update
+        # to second_doc)
+        match = client.find(collection, initial_doc)
+        self.assert_dict(appended_initial_doc, match[0])
+
+        # Check we can update both docs simultaneously when both
+        # match a query
+        new_append = {
+            '$set': {
+                'new_key': 'I changed my mind',
+                'additional_key': 'we must store this string'
+            }
+        }
+
+        query = {
+            'id.label': 'my label'
+        }
+        # Specify multi in order to update all
+        client.update(collection, query, new_append, multi=True)
+
+        match = client.find(collection)
+        self.assertEqual(2, len(match))
+
+        match = client.find(collection, initial_doc)
+        self.assert_dict(initial_doc, match[0])
+        self.assert_dict(new_append['$set'], match[0])
+
+        match = client.find(collection, second_doc)
+        self.assert_dict(second_doc, match[0])
+        self.assert_dict(new_append['$set'], match[0])
 
     def test_get_time_series_mongo(self):
         """

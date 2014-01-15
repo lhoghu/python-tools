@@ -158,7 +158,7 @@ class MongoClient():
         object_id = self.db[collection].insert(doc)
         return str(object_id)
 
-    def update(self, collection, query, doc):
+    def update(self, collection, query, doc, multi=False):
         """
         Insert the doc into the collection, using the query to find a
         match. If a match is found, the match is updated with the doc.
@@ -173,7 +173,8 @@ class MongoClient():
         # better way to go than transform
         transform = TransformTuple()
         query = transform.transform_incoming(query, collection)
-        return self.db[collection].update(query, doc, upsert=True)
+        doc = transform.transform_incoming(doc, collection)
+        return self.db[collection].update(query, doc, upsert=True, multi=multi)
 
     def find(self, collection, doc=None):
         """
