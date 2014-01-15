@@ -536,8 +536,10 @@ class TestMongoDataRetrievalFunctions(unittest.TestCase):
         client.insert(collection, doc)
         match = client.find(collection, doc)
         self.assertEqual(1, len(match))
-
         self.assert_dict(doc, match[0])
+
+        # Clean up
+        client.remove(collection)
 
     def test_update(self):
         client = db.get()
@@ -636,6 +638,9 @@ class TestMongoDataRetrievalFunctions(unittest.TestCase):
         match = client.find(collection, second_doc)
         self.assert_dict(second_doc, match[0])
         self.assert_dict(new_append['$set'], match[0])
+
+        # Clean up
+        client.remove(collection)
 
     def test_get_time_series_mongo(self):
         """
