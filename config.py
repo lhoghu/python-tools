@@ -1,27 +1,23 @@
 import ConfigParser
 import os
 
-CACHE_FOLDER = 'cache'
-CSV_FOLDER = 'csv'
+cp = ConfigParser.ConfigParser()
+cp.readfp(open('defaults.cfg'))
+cp.read(os.path.expanduser('~/.python-tools.cfg'))
 
-DB = 'mongo'
+SERIALISER = cp.get('serialisation', 'serialiser')
+CACHE_FOLDER = cp.get('serialisation', 'cache_folder')
+CSV_FOLDER = cp.get('serialisation', 'csv_folder')
 
-MONGO_FOLDER = 'mongo'
-MONGOD_PORT = 27021
-MONGO_LOG = 'mongo.log'
-MONGO_TIMESERIES_DB = 'timeseries_db'
+DB = cp.get('database', 'db')
+
+MONGO_FOLDER = cp.get('mongo', 'mongo_folder')
+MONGOD_PORT = cp.get('mongo', 'mongod_port')
+MONGO_LOG = cp.get('mongo', 'mongod_log')
+MONGO_TIMESERIES_DB = cp.get('mongo', 'mongo_timeseries_db')
 
 def main():
-    config = ConfigParser.ConfigParser()
-    config.readfp(open('defaults.cfg'))
-    config.read(['site.cfg', os.path.expanduser('~/.python-tools.cfg')])
-    CACHE_FOLDER = config.get('folders', 'cache_folder')
-    CSV_FOLDER = config.get('folders', 'csv_folder')
-    DB = config.get('database', 'db')
-    MONGO_FOLDER = config.get('mongo', 'mongo_folder')
-    MONGOD_PORT = config.get('mongo', 'mongod_port')
-    MONGO_LOG = config.get('mongo', 'mongod_log')
-    MONGO_TIMESERIES_DB = config.get('mongo', 'mongo_timeseries_db')
+    pass
 
 if __name__ == '__main__':
     main()
