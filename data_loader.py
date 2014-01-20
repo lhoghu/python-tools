@@ -127,7 +127,7 @@ def download_bbg_historicaldatarequest(symbol, start, end, field):
 
         request.GetElement("securities").AppendValue(symbol)
 
-        print "send request for <" + symbol  + "> <" + field + ">"
+        logging.info("send request for <" + symbol  + "> <" + field + ">")
         # send request
         cid = session.SendRequest(request)
         pending_requests = pending_requests + 1
@@ -135,8 +135,10 @@ def download_bbg_historicaldatarequest(symbol, start, end, field):
         while pending_requests > 0:
             PumpWaitingMessages()
 
+        logging.info("returning <" + symbol  + "> <" + field + ">")
         return results
     else:
+        logging.warning("failed to download <" + symbol + "," + str(start) + "," + str(end) + "," + field + ">" )
         return None
 
 
@@ -427,7 +429,8 @@ def download_csv(url):
 
     # Write to a temporary csv so we can use csv.reader in a simple way
     # TODO remove the need for this temp file
-    _, tmpfile = tempfile.mkstemp(suffix='.csv')
+
+    fh, tmpfile = tempfile.mkstemp(suffix='.csv')
     try:
         with open(tmpfile, 'w') as f:
             # The decode is here to strip any BOM at the beginning of the file
@@ -444,6 +447,7 @@ def download_csv(url):
         logging.error(msg)
         raise e
     finally:
+        os.close(fh)
         os.remove(tmpfile)
 
     return data
