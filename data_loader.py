@@ -429,7 +429,6 @@ def download_csv(url):
 
     # Write to a temporary csv so we can use csv.reader in a simple way
     # TODO remove the need for this temp file
-
     fh, tmpfile = tempfile.mkstemp(suffix='.csv')
     try:
         with open(tmpfile, 'w') as f:
