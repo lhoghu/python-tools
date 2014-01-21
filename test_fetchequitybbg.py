@@ -45,19 +45,18 @@ def get_bbg_data_at_cass(index_list, start_date, end_date):
 
 
     fields = (
-        'PX_LAST',
-        'PX_OFFICIAL_CLOSE',
-        'PX_OPEN',
-        'PX_LAST',
-        'PX_OPEN',
-        'PX_LOW',
-        'TOT_RETURN_INDEX_GROSS_DVDS',
-        'DAY_TO_DAY_TOT_RETURN_GROSS_DVDS',
+        'PX_LAST',                          # Last price of the day
+        'PX_OPEN',                          # Open price of the day
+        'PX_HIGH',                          # Highest price of the day
+        'PX_LOW',                           # Lowest price of the day
+        'PX_OFFICIAL_CLOSE',                # Official close of the exchange
+        'TOT_RETURN_INDEX_GROSS_DVDS',      # Total return series including dividends
+        'DAY_TO_DAY_TOT_RETURN_GROSS_DVDS', # Total return series including dividends
         'EQY_DPS',
         'SECURITY_DES',
         'TRAIL_12M_GROSS_MARGIN',
         'ASSET_TURNOVER',
-        'BS_SH_OUT',
+        'BS_SH_OUT',                        # Outstanding shares
         'TRAIL_12M_CASH_FROM_OPER',
         'CF_CASH_FROM_OPER',
         'BS_LT_BORROW',
@@ -74,7 +73,9 @@ def get_bbg_data_at_cass(index_list, start_date, end_date):
         'TOT_DEBT_TO_TOT_ASSET',
         'TOT_DEBT_TO_COM_EQY',
         'BS_TOT_ASSET',
-        'HISTORICAL_MARKET_CAP')
+        'HISTORICAL_MARKET_CAP',
+        'IS_INC_BEF_XO_ITEM'                # Income before Extraordinary Items
+    )
 
     start_date = datetime.datetime(1960, 1, 1)
     random.seed()
