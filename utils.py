@@ -69,14 +69,26 @@ def flatten(seq):
         except TypeError:
             yield x  # not iterable
 
+################################################################################
 
 def serialise_csv(obj, filename):
     if not os.path.isfile(filename):
         logging.debug('Serialising object to CSV file ' + filename)
         with open(filename, 'wb') as csvfile:
             csvwr = csv.writer(csvfile, quoting=csv.QUOTE_ALL, dialect='excel')
+            if (obj):
+                for line in obj:
+                    csvwr.writerow(list(flatten(line)))
+
+################################################################################
+
+def deserialise_csv(filename):
+    if not os.path.isfile(filename):
+        logging.debug('Deserialising object from CSV file ' + filename)
+        with open(filename, 'r') as csvfile:
+            csvrd = csv.reader(csvfile, quoting=csv.QUOTE_ALL, dialect='excel')
             for line in obj:
-                csvwr.writerow(list(flatten(line)))
+                csvrd.read(list(flatten(line)))
 
 ################################################################################
 

@@ -32,6 +32,7 @@ class TestUtilsFunctions(unittest.TestCase):
             utils.serialise_obj(data, tmpfile)
             result = utils.deserialise_obj(tmpfile)
         finally:
+            os.close(fd)
             os.remove(tmpfile)
         self.assertEqual(data, result)
 
@@ -350,7 +351,7 @@ class TestDataRetrievalFunctions(unittest.TestCase):
         config.CACHE_FOLDER = self.cache_folder
 
     def tearDown(self):
-        cache_file = data_retrieval.get_cache_filename(self.cache_id)
+        cache_file = data_retrieval.get_cache_filename_pickle(self.cache_id)
         if os.path.exists(cache_file):
             os.remove(cache_file)
         config.CACHE_FOLDER = self.restore_cache_folder
@@ -377,7 +378,7 @@ class TestDataRetrievalFunctions(unittest.TestCase):
 
         # Check the item isn't in the cache to start with
         # If the test fails here, just delete the file in the cache folder
-        self.assertFalse(data_retrieval.get_from_cache(series_id))
+        self.assertFalse(data_retrieval.get_from_cache(loader, loader_args))
 
         # Retrieve the series
         result = data_retrieval.get_time_series(loader, loader_args)
@@ -389,14 +390,14 @@ class TestDataRetrievalFunctions(unittest.TestCase):
         self.assertEqual(loader_args, result[0][data_structure.ID])
 
         # Check we can now retrieve the id from the cache
-        cached_result = data_retrieval.get_from_cache(series_id)
+        cached_result = data_retrieval.get_from_cache(loader, loader_args)
         self.assertEqual(loader_args, cached_result[0][data_structure.ID])
 
         # Remove it from the cache
         data_retrieval.clear_cache(series_id)
 
         # Check it's gone
-        self.assertFalse(data_retrieval.get_from_cache(series_id))
+        self.assertFalse(data_retrieval.get_from_cache(loader, loader_args))
 
 
 class TestMongoDataRetrievalFunctions(unittest.TestCase):
@@ -696,6 +697,7 @@ class TestMongoDataRetrievalFunctions(unittest.TestCase):
 if __name__ == '__main__':
     # import logging
     # logging.basicConfig(level='DEBUG')
+    config.set_defaults()
     unittest.main()
 
 ################################################################################ 

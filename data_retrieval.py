@@ -14,6 +14,7 @@ CACHE_EXT_SPICKLE = '.spickle'
 CSV_EXT = '.csv'
 MONGO_DB = 'mongo'
 
+
 ################################################################################
 
 def get_cache_filename_pickle(id):
@@ -32,7 +33,7 @@ def get_cache_filename_spickle(id):
 
 ################################################################################
 
-def get_csv_filename(id):
+def get_cache_filename_csv(id):
     """
     Get the filename in the cache associated with id
     """
@@ -57,8 +58,13 @@ def get_from_file_cache(id):
         if os.path.exists(cache_file):
             logging.debug("cached file found {0}".format(cache_file))
             return utils.s_deserialise_obj(cache_file)
+    elif (config.SERIALISER == 'csv'):
+        cache_file = get_cache_filename_csv(id)
+        if os.path.exists(cache_file):
+            logging.debug("cached file found {0}".format(cache_file))
+            return utils.deserialise_csv(cache_file)
     else:
-        raise Exception('invalid serialiser')
+        raise Exception('invalid serialiser' + config.SERIALISER)
 
     return None
     
@@ -69,8 +75,14 @@ def clear_cache(id=None):
     Remove all cache files in the cache folder, or just the specified id
     """
     if id is not None:
-        os.remove(get_cache_filename_pickle(id))
-        os.remove(get_cache_filename_spickle(id))
+        try:
+            os.remove(get_cache_filename_pickle(id))
+        except OSError:
+            pass
+        try:
+            os.remove(get_cache_filename_spickle(id))
+        except OSError:
+            pass
     else:
         for root, dirs, files in os.walk(config.CACHE_FOLDER):
             for f in files:
@@ -85,7 +97,12 @@ def get_id(loader, loader_args):
     """
     Create the hash of the loader function name and its arguments
     """
-    return hashlib.sha1('{0}{1}'.format(loader, loader_args)).hexdigest()
+    if (config.FILEID_TYPE == 'sha1'):
+        return hashlib.sha1('{0}{1}'.format(loader, loader_args)).hexdigest()
+    elif (config.FILEID_TYPE == 'explicit'):
+        return '$$'.join((loader_args['symbol'], loader_args['field']))
+    else:
+        raise Exception('invalid FILEID_TYPE')
 
 ################################################################################
 
@@ -148,6 +165,8 @@ def write_to_cache(loader, loader_args, ts):
             utils.serialise_obj(ts, get_cache_filename_pickle(id))
         elif (config.SERIALISER == 'spickle'):
             utils.s_serialise_obj(ts, get_cache_filename_spickle(id))
+        elif (config.SERIALISER == 'csv'):
+            utils.serialise_csv(ts, get_cache_filename_csv(id))
         else:
             raise Exception('invalid serialiser')
 
@@ -170,11 +189,5 @@ def get_time_series(loader, loader_args):
             return None
 
     return ts
-
-
-################################################################################
-
-def save_time_series_csv(ts, id):
-    utils.serialise_csv(ts, get_csv_filename(id))
 
 ################################################################################

@@ -4,15 +4,63 @@ import config
 import data_retrieval
 import random
 
+
 ################################################################################
 
-def get_bbg_data_at_cass(index_list, start_date, end_date):
+def convert_bbg_indices(index_list, start_date, end_date):
+
     equ_set = set()
 
     # Get the time series from the cache
-    config.DB = "cache"
-    config.SERIALISER = "spickle"
+    logging.basicConfig(filename='debug.log', level=logging.DEBUG)
+    equity_set = set()
+    symbol_to_idx = dict()
+    idx_to_symbol = list()
+    for index in index_list:
+        field = ''
+        if index == 'DJI Index':
+            field = 'INDX_MWEIGHT'
+        else:
+            field = 'INDX_MWEIGHT_HIST'
 
+        loader = 'download_bbg_timeseries'
+        loader_args = {
+                'symbol': index,
+                'start': start_date,
+                'end': end_date,
+                'field': field
+            }
+
+        config.FILEID_TYPE = 'sha1'
+        config.DB = "cache"
+        config.SERIALISER = "spickle"
+        ts = data_retrieval.get_time_series(loader, loader_args)
+
+        config.FILEID_TYPE = 'explicit'
+        config.DB = "cache"
+        config.SERIALISER = "csv"
+        data_retrieval.write_to_cache(loader, loader_args, ts)
+
+        if (ts):
+            for date, equ_tup in ts:
+                equ_set.update(equ_tup)
+#        if ts is not None:
+#            total_ts = loader_args.copy()
+#            total_ts['ts'] = ts
+#            print "WRITING " + index
+#            data_retrieval.write_time_series(total_ts)
+
+
+    equ_list = list(equ_set);
+
+    return equ_list
+
+################################################################################
+
+def get_bbg_indices(index_list, start_date, end_date):
+    equ_set = set()
+
+    # Get the time series from the cache
     logging.basicConfig(filename='debug.log', level=logging.DEBUG)
     equity_set = set()
     symbol_to_idx = dict()
@@ -42,8 +90,13 @@ def get_bbg_data_at_cass(index_list, start_date, end_date):
 #            data_retrieval.write_time_series(total_ts)
 
 
+    equ_list = list(equ_set);
 
+    return equ_list
 
+################################################################################
+
+def get_bbg_equdata(equ_list, start_date, end_date):
     fields = (
         'PX_LAST',                          # Last price of the day
         'PX_OPEN',                          # Open price of the day
@@ -76,11 +129,8 @@ def get_bbg_data_at_cass(index_list, start_date, end_date):
         'HISTORICAL_MARKET_CAP',
         'IS_INC_BEF_XO_ITEM'                # Income before Extraordinary Items
     )
-
-    start_date = datetime.datetime(1960, 1, 1)
     random.seed()
 
-    equ_list = list(equ_set);
     random.shuffle(equ_list)
 
     for equity in equ_list:
@@ -107,11 +157,21 @@ def get_bbg_data_at_cass(index_list, start_date, end_date):
 ################################################################################
 
 if __name__ == '__main__':
-    index_list = ('SPX Index',)
-    # index_list = ('SPX Index', 'DJI Index', 'RTY Index')
-    # index_list = ('SPX Index', 'DJI Index', 'RTY Index', 'RAY Index')
     t = datetime.datetime(2014, 1, 4)
     today_date = datetime.datetime(t.year, t.month, t.day)
     start_date = datetime.datetime(1990, 1, 1)
     end_date = today_date - datetime.timedelta(1)
-    get_bbg_data_at_cass(index_list, start_date, end_date)
+
+    config.DB = "cache"
+    config.SERIALISER = "spickle"
+
+    index_list = ('SPX Index', 'DJI Index', 'RTY Index')
+    convert_bbg_indices(index_list, start_date, end_date)
+
+    # index_list = ('SPX Index',)
+    # index_list = ('SPX Index', 'DJI Index', 'RTY Index')
+    # index_list = ('SPX Index', 'DJI Index', 'RTY Index', 'RAY Index')
+    # equ_list = get_bbg_indices(index_list, start_date, end_date)
+
+    # start_date = datetime.datetime(1960, 1, 1)
+    # get_bbg_equdata(equ_list, start_date, end_date)
