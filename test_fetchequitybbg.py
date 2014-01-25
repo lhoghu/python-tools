@@ -4,6 +4,34 @@ import config
 import data_retrieval
 import random
 
+################################################################################
+
+def test_spickle_vs_csv(index_list, start_date, end_date):
+    for index in index_list:
+        if index == 'DJI Index':
+            field = 'INDX_MWEIGHT'
+        else:
+            field = 'INDX_MWEIGHT_HIST'
+
+        loader = 'download_bbg_timeseries'
+        loader_args = {
+                'symbol': index,
+                'start': start_date,
+                'end': end_date,
+                'field': field
+            }
+
+        config.FILEID_TYPE = 'sha1'
+        config.SERIALISER = "spickle"
+        ts_spickle = data_retrieval.get_time_series(loader, loader_args)
+
+        config.FILEID_TYPE = 'explicit'
+        config.SERIALISER = "csv"
+        ts_csv = data_retrieval.get_time_series(loader, loader_args)
+
+        if (ts_spickle != ts_csv):
+            print "deserialisation differences " + index
+
 
 ################################################################################
 
@@ -32,12 +60,10 @@ def convert_bbg_indices(index_list, start_date, end_date):
             }
 
         config.FILEID_TYPE = 'sha1'
-        config.DB = "cache"
         config.SERIALISER = "spickle"
         ts = data_retrieval.get_time_series(loader, loader_args)
 
         config.FILEID_TYPE = 'explicit'
-        config.DB = "cache"
         config.SERIALISER = "csv"
         data_retrieval.write_to_cache(loader, loader_args, ts)
 
@@ -166,7 +192,8 @@ if __name__ == '__main__':
     config.SERIALISER = "spickle"
 
     index_list = ('SPX Index', 'DJI Index', 'RTY Index')
-    convert_bbg_indices(index_list, start_date, end_date)
+    test_spickle_vs_csv(index_list, start_date, end_date)
+    #convert_bbg_indices(index_list, start_date, end_date)
 
     # index_list = ('SPX Index',)
     # index_list = ('SPX Index', 'DJI Index', 'RTY Index')

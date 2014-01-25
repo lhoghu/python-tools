@@ -34,7 +34,7 @@ def s_deserialise_obj(filename):
     results = list()
     with open(filename, 'rb') as f:
         for element in spickle.s_load(f):
-            results.append(element) 
+            results.append((element[0], tuple(element[1])))
     return results
 
 ################################################################################
@@ -83,12 +83,16 @@ def serialise_csv(obj, filename):
 ################################################################################
 
 def deserialise_csv(filename):
-    if not os.path.isfile(filename):
+    ts = list()
+    if os.path.isfile(filename):
         logging.debug('Deserialising object from CSV file ' + filename)
         with open(filename, 'r') as csvfile:
             csvrd = csv.reader(csvfile, quoting=csv.QUOTE_ALL, dialect='excel')
-            for line in obj:
-                csvrd.read(list(flatten(line)))
+            for csvrow in csvrd:
+                csvrow_date = datetime.datetime.strptime(csvrow[0], '%Y-%m-%d %H:%M:%S')
+                ts.append ((csvrow_date, tuple(csvrow[1:])))
+
+    return ts
 
 ################################################################################
 
