@@ -158,6 +158,99 @@ def insert_to_mongo():
 
 ################################################################################
 
+def date_sequence(start, end):
+    dte = start
+    while dte <= end:
+        yield dte
+        dte = utils.offset(dte, 1)
+
+def generate_symbols(count):
+    import hashlib
+    for i in range(count):
+        yield hashlib.sha1('{0}'.format(i)).hexdigest()
+
+def insert_timepoint(db_client, collection, id, dte, val):
+    db_client.insert(collection, {
+        'id': id,
+        'date': dte,
+        'val': val
+    })
+
+def load_mongo():
+    import config
+    config.MONGO_FOLDER = 'mongo_stress'
+    config.MONGOD_PORT = 27021
+    collection = 'overload'
+    datatype = 'close'
+    start_date = datetime.datetime(2003, 01, 03)
+    end_date = datetime.datetime(2014, 01, 24)
+    nb_series = 1000
+
+    with db.MongoService():
+        logging.info('Starting mongo service...')
+        import time
+        time.sleep(1)
+
+        logging.info('Creating mongo client...')
+        client = db.MongoClient()
+
+        logging.info('Loading database...')
+        with utils.Timer() as t:
+            for symbol in generate_symbols(nb_series):
+                id = {
+                    'symbol': symbol,
+                    'datatype': datatype
+                }
+                for dte in date_sequence(start_date, end_date):
+                    insert_timepoint(client, collection, id, dte,
+                                     random.uniform(0, 100.0))
+
+        print('Inserted {0} series in {1} ms'.format(nb_series,
+                                                     t.interval * 1000.0))
+
+def query_mongo_stress():
+    import config
+    config.MONGO_FOLDER = 'mongo_stress'
+    config.MONGOD_PORT = 27021
+    collection = 'overload'
+    datatype = 'close'
+
+    with db.MongoService():
+        logging.info('Starting mongo service...')
+        import time
+        time.sleep(1)
+
+        logging.info('Creating mongo client...')
+        client = db.MongoClient()
+
+        logging.info('Finding symbols...')
+        with utils.Timer() as t:
+            matches = client.distinct(collection, 'id.symbol')
+        logging.info('Found {0} series in {1} ms'.format(len(matches),
+                                                  t.interval * 1000.0))
+
+        import random
+        idx = random.randint(0, len(matches))
+        logging.info('Retrieving series {0}...'.format(matches[idx]))
+        with utils.Timer() as t:
+            matches = client.find(collection, {
+                'id.symbol': matches[idx],
+                'id.datatype': datatype
+            })
+        logging.info('Found {0} timepoints in {1} ms'.format(len(matches),
+                                                             t.interval * 1000.0))
+
+        logging.info('Converting time series...')
+        with utils.Timer() as t:
+            ts = map(lambda el: (el['date'], el['val']), matches)
+            ts.sort()
+
+        logging.info('Converted timeseries of length {0} in {1} ms'.format(
+            len(ts),
+            t.interval * 1000.0))
+
+################################################################################
+
 def test_time_series_record():
     doc = data_loader.download_mock_series(
         'sym',
@@ -199,14 +292,14 @@ def generate_test_transform_google_timeseries():
 ################################################################################
 
 if __name__ == '__main__':
-    #logging.basicConfig(level='DEBUG')
+    logging.basicConfig(level='DEBUG')
     # plot_treasuries()
     # plot_stock(
     #         'IBM', 
     #         datetime.datetime(2003, 11, 11), 
     #         datetime.datetime(2013, 11, 11))
     # generate_test_transform_treasuries_data()
-    generate_test_transform_google_timeseries()
+    # generate_test_transform_google_timeseries()
     # generate_test_transform_yahoo_timeseries()
     # get_series()
     # linear_reg()
@@ -214,8 +307,10 @@ if __name__ == '__main__':
     # get_bbg_data()
     # get_bbg_id()
     # test_time_series_record()
-    insert_to_mongo()
+    # insert_to_mongo()
+    # load_mongo()
+    query_mongo_stress()
 
-    print "done"
+    print ("done")
 
 ################################################################################
