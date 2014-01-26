@@ -34,7 +34,10 @@ def s_deserialise_obj(filename):
     results = list()
     with open(filename, 'rb') as f:
         for element in spickle.s_load(f):
-            results.append((element[0], tuple(element[1])))
+            if isiterable(element[1]):
+                results.append((element[0], tuple(element[1])))
+            else:
+                results.append((element[0], element[1]))
     return results
 
 ################################################################################
