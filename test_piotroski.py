@@ -20,67 +20,77 @@ import config
 # 9.     Asset Turnover - Score 1 if there is a higher asset turnover ratio year on year (as a measure of productivity).
 # - See more at: http://www.stockopedia.com/content/the-piotroski-f-score-a-fundamental-screen-for-value-stocks-55711/#sthash.0yc4bzoc.dpuf
 
-index_list = ('SPX Index',)
-# index_list = ('SPX Index', 'DJI Index', 'RTY Index')
-# index_list = ('SPX Index', 'DJI Index', 'RTY Index', 'RAY Index')
-t = datetime.datetime(2014, 1, 4)
-today_date = datetime.datetime(t.year, t.month, t.day)
-start_date = datetime.datetime(1990, 1, 1)
-end_date = today_date - datetime.timedelta(1)
-
-
 ################################################################################
+import test_fetchequitybbg
 
-def get_equity_ts(symbol, field):
+
+def get_equity_ts(symbol, field, start_date, end_date):
     loader = 'download_bbg_timeseries';
     loader_args = {
-        'symbol': symbol,
+        'symbol': symbol + ' Equity',
         'start': start_date,
         'end': end_date,
         'field': field
     }
-    equ_ts = data_retrieval.get_time_series(loader, loader_args)
+    equ_ts = data_retrieval.get_from_cache(loader, loader_args)
     return equ_ts
 
 ################################################################################
 
-def generate_piotrosky_coeffs(equ_ts):
+def generate_piotrosky_coeffs(equ_list, start_date, end_date):
     """
     Generate the Piotrosky coefficients
     @param equ_ts: dictionary<date, tuple> contain equity composition per date
     """
-
-    all_equ = set()
-    for date, equ_tup in equ_ts.iteritems():
-        all_equ.update(equ_tup)
-
-    for equ in all_equ:
-        net_income_ts = get_equity_ts(equ, 'NET_INCOME')
-        oper_cf_ts = get_equity_ts(equ, 'CF_CASH_FROM_OPER')
-        roa_ts = get_equity_ts(equ, 'RETURN_ON_ASSET')
+    for equ in equ_list:
+        logging.info('** Working on <' + equ + '>')
+        net_income_ts = get_equity_ts(equ, 'NET_INCOME', start_date, end_date)
+        oper_cf_ts = get_equity_ts(equ, 'CF_CASH_FROM_OPER', start_date, end_date)
+        roa_ts = get_equity_ts(equ, 'RETURN_ON_ASSET', start_date, end_date)
 #        net_inc_before_extra_items_ts =
-        lt_debt_to_assets_ratio_ts = get_equity_ts(equ, 'LT_DEBT_TO_TOT_ASSET')
-        current_ratio_ts = get_equity_ts(equ, 'CUR_RATIO')
+        lt_debt_to_assets_ratio_ts = get_equity_ts(equ, 'LT_DEBT_TO_TOT_ASSET', start_date, end_date)
+        current_ratio_ts = get_equity_ts(equ, 'CUR_RATIO', start_date, end_date)
 #        new_equ_issue_ts =
-        gross_margin_ts = get_equity_ts(equ, 'TRAIL_12M_GROSS_MARGIN')
-        asset_turnover_ts = get_equity_ts(equ, 'ASSET_TURNOVER')
-        if net_income_ts and oper_cf_ts and roa_ts and lt_debt_to_assets_ratio_ts and current_ratio_ts and gross_margin_ts and asset_turnover_ts:
-            print "valid equity " + str(equ)
-        else:
-            print "invalid equity " + str(equ)
+        gross_margin_ts = get_equity_ts(equ, 'TRAIL_12M_GROSS_MARGIN', start_date, end_date)
+        asset_turnover_ts = get_equity_ts(equ, 'ASSET_TURNOVER', start_date, end_date)
+        valid_equ = True
+        if not net_income_ts:
+            valid_equ = False
+            logging.info('  missing NET_INCOME <' + equ + '>')
+
+        if not oper_cf_ts:
+            valid_equ = False
+            logging.info('  missing CF_CASH_FROM_OPER <' + equ + '>')
+
+        if not roa_ts:
+            valid_equ = False
+            logging.info('  missing RETURN_ON_ASSET <' + equ + '>')
+
+        if not lt_debt_to_assets_ratio_ts:
+            valid_equ = False
+            logging.info('  missing LT_DEBT_TO_TOT_ASSET <' + equ + '>')
+
+        if not current_ratio_ts:
+            valid_equ = False
+            logging.info('  missing CUR_RATIO <' + equ + '>')
+
+        if not gross_margin_ts:
+            valid_equ = False
+            logging.info('  missing TRAIL_12M_GROSS_MARGIN <' + equ + '>')
+
+        if not asset_turnover_ts:
+            valid_equ = False
+            logging.info('  missing ASSET_TURNOVER <' + equ + '>')
+
+        if valid_equ:
+            logging.info("**valid equity " + str(equ))
 
 
 ################################################################################
-def generate_us_equity_universe():
-    logging.basicConfig(filename='debug.log', level=logging.DEBUG)
-    t = datetime.datetime(2014, 1, 4)
-    today_date = datetime.datetime(t.year, t.month, t.day)
-    start_date = datetime.datetime(1990, 1, 1)
-    end_date = today_date - datetime.timedelta(1)
-
+def generate_us_equity_universe(idx_list, start_date, end_date):
     equity_list_per_date = dict()
 
-    for index in index_list:
+    for index in idx_list:
         field = ''
         if index == 'DJI Index':
             field = 'INDX_MWEIGHT'
@@ -109,11 +119,29 @@ def generate_us_equity_universe():
 ################################################################################
 
 
-def generate_piotroski():
-    equ_ts = generate_us_equity_universe()
-    piotr_ts = generate_piotrosky_coeffs(equ_ts)
+def generate_piotroski(index_list):
+    t = datetime.datetime(2014, 1, 4)
+    today_date = datetime.datetime(t.year, t.month, t.day)
+    idx_start_date = datetime.datetime(1990, 1, 1)
+    idx_end_date = today_date - datetime.timedelta(1)
+
+    equ_list = test_fetchequitybbg.get_bbg_indices(index_list, idx_start_date, idx_end_date)
+
+    equ_start_date = datetime.datetime(1960, 1, 1)
+    equ_end_date = today_date - datetime.timedelta(1)
+    piotr_ts = generate_piotrosky_coeffs(equ_list, equ_start_date, equ_end_date)
 
 ################################################################################
 
 if __name__ == '__main__':
-    generate_piotroski()
+    logging.basicConfig(filename='./%s-piotrosky-log.txt' % datetime.datetime.strftime(datetime.datetime.now(),"%Y%m%d %H%M%S"),level=logging.DEBUG)
+    config.DB = "cache"
+    config.SERIALISER = "spickle"
+    #index_list = ('SPX Index', 'RIY Index', 'RTY Index')
+    #index_list = ('RIY Index',)
+    index_list = ('SPX Index',)
+    try:
+        generate_piotroski(index_list)
+    except Exception as e:
+        logging.exception("Uncaught failure during execution")
+        raise

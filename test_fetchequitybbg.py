@@ -186,8 +186,6 @@ if __name__ == '__main__':
     try:
         logging.basicConfig(filename='../../%s-log.txt' % datetime.datetime.strftime(datetime.datetime.now(),"%Y%m%d %H%M%S"),level=logging.DEBUG)
         logging.info('Starting operation')
-        import utils
-        utils.s_deserialise_obj('../cache/d5d8370a0b7b9c67f362ea0f7456b9747ef9121a.spickle')
 
         t = datetime.datetime(2014, 1, 4)
         today_date = datetime.datetime(t.year, t.month, t.day)
