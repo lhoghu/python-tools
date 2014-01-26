@@ -3,6 +3,7 @@ import logging
 import config
 import data_retrieval
 import random
+import traceback
 
 ################################################################################
 
@@ -182,31 +183,36 @@ def get_bbg_equdata(equ_list, start_date, end_date):
 ################################################################################
 
 if __name__ == '__main__':
-    logging.basicConfig(filename='../../%s-log.txt' % datetime.datetime.strftime(datetime.datetime.now(),"%Y%m%d %H%M%S"),level=logging.DEBUG)
-    logging.info('Starting operation')
-    import utils
-    utils.s_deserialise_obj('../cache/d5d8370a0b7b9c67f362ea0f7456b9747ef9121a.spickle')
+    try:
+        logging.basicConfig(filename='../../%s-log.txt' % datetime.datetime.strftime(datetime.datetime.now(),"%Y%m%d %H%M%S"),level=logging.DEBUG)
+        logging.info('Starting operation')
+        import utils
+        utils.s_deserialise_obj('../cache/d5d8370a0b7b9c67f362ea0f7456b9747ef9121a.spickle')
 
-    t = datetime.datetime(2014, 1, 4)
-    today_date = datetime.datetime(t.year, t.month, t.day)
-    start_date = datetime.datetime(1990, 1, 1)
-    end_date = today_date - datetime.timedelta(1)
+        t = datetime.datetime(2014, 1, 4)
+        today_date = datetime.datetime(t.year, t.month, t.day)
+        start_date = datetime.datetime(1990, 1, 1)
+        end_date = today_date - datetime.timedelta(1)
 
-    config.DB = "cache"
-    config.SERIALISER = "spickle"
+        config.DB = "cache"
+        config.SERIALISER = "spickle"
 
-    #index_list = ('SPX Index', 'DJI Index', 'RTY Index')
-    #test_spickle_vs_csv(index_list, start_date, end_date)
-    #convert_bbg_indices(index_list, start_date, end_date)
+        #index_list = ('SPX Index', 'DJI Index', 'RTY Index')
+        #test_spickle_vs_csv(index_list, start_date, end_date)
+        #convert_bbg_indices(index_list, start_date, end_date)
 
-    # index_list = ('SPX Index',)
-    # RTY = Russell 2000
-    # RIY = Russell 1000
-    # RAY = Russell 3000
+        # index_list = ('SPX Index',)
+        # RTY = Russell 2000
+        # RIY = Russell 1000
+        # RAY = Russell 3000
 
-    #index_list = ('SPX Index',)
-    index_list = ('SPX Index', 'RTY Index', 'RIY Index')
-    equ_list = get_bbg_indices(index_list, start_date, end_date)
+        #index_list = ('SPX Index',)
+        index_list = ('SPX Index', 'RTY Index', 'RIY Index')
+        equ_list = get_bbg_indices(index_list, start_date, end_date)
 
-    equ_start_date = datetime.datetime(1960, 1, 1)
-    get_bbg_equdata(equ_list, equ_start_date, end_date)
+        equ_start_date = datetime.datetime(1960, 1, 1)
+        get_bbg_equdata(equ_list, equ_start_date, end_date)
+
+    except Exception as e:
+        logging.exception("Uncaught failure during execution")
+        raise
