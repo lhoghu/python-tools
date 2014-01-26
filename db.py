@@ -205,6 +205,16 @@ class MongoClient():
         doc = transform.transform_incoming(doc, collection)
         self.db[collection].remove(doc)
 
+    def distinct(self, collection, query):
+        """
+        Return the distinct records in a collection that match the
+        query and return the results in a list
+        @param collection:
+        @param query:
+        @return:
+        """
+        return self.db[collection].distinct(query)
+
 ################################################################################
 
 if __name__ == '__main__':
