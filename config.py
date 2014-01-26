@@ -14,6 +14,7 @@ MONGO_LOG = 'mongo.log'
 MONGO_TIMESERIES_DB = 'timeseries_db'
 
 def set_args(cp):
+    global SERIALISER, CACHE_FOLDER, CSV_FOLDER, FILEID_TYPE, DB, MONGO_FOLDER, MONGOD_PORT, MONGO_LOG, MONGO_TIMESERIES_DB
     SERIALISER = cp.get('serialisation', 'serialiser')
     CACHE_FOLDER = cp.get('serialisation', 'cache_folder')
     CSV_FOLDER = cp.get('serialisation', 'csv_folder')
