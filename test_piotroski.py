@@ -1,4 +1,5 @@
 import logging
+import logging.handlers
 import datetime
 import data_retrieval
 import sys
@@ -134,7 +135,20 @@ def generate_piotroski(index_list):
 ################################################################################
 
 if __name__ == '__main__':
-    logging.basicConfig(filename='./%s-piotrosky-log.txt' % datetime.datetime.strftime(datetime.datetime.now(),"%Y%m%d %H%M%S"),level=logging.DEBUG)
+    # Set up a specific logger with our desired output level
+    #my_logger = logging.getLogger('MyLogger')
+    #my_logger.setLevel(logging.DEBUG)
+
+    # Add the log message handler to the logger
+    logging.basicConfig(level=logging.DEBUG)
+    log_filename = './%s-piotrosky-log.txt' % datetime.datetime.strftime(datetime.datetime.now(),"%Y%m%d %H%M%S")
+    handler = logging.handlers.RotatingFileHandler(log_filename, maxBytes=1000000, backupCount=50)
+    handler.setLevel(logging.DEBUG)
+    formatter = logging.Formatter('%(name)-12s: %(levelname)-8s %(message)s')
+    # tell the handler to use this format
+    handler.setFormatter(formatter)
+    logging.getLogger('').addHandler(handler)
+
     config.DB = "cache"
     config.SERIALISER = "spickle"
     #index_list = ('SPX Index', 'RIY Index', 'RTY Index')

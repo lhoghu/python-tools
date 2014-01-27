@@ -184,7 +184,15 @@ def get_bbg_equdata(equ_list, start_date, end_date):
 
 if __name__ == '__main__':
     try:
-        logging.basicConfig(filename='../../%s-log.txt' % datetime.datetime.strftime(datetime.datetime.now(),"%Y%m%d %H%M%S"),level=logging.DEBUG)
+        # Add the log message handler to the logger
+        logging.basicConfig(level=logging.DEBUG)
+        log_filename = '../../%s-fetchbbg-log.txt' % datetime.datetime.strftime(datetime.datetime.now(),"%Y%m%d %H%M%S")
+        handler = logging.handlers.RotatingFileHandler(log_filename, maxBytes=1000000, backupCount=50)
+        handler.setLevel(logging.DEBUG)
+        formatter = logging.Formatter('%(name)-12s: %(levelname)-8s %(message)s')
+        # tell the handler to use this format
+        handler.setFormatter(formatter)
+        logging.getLogger('').addHandler(handler)
         logging.info('Starting operation')
 
         t = datetime.datetime(2014, 1, 4)
