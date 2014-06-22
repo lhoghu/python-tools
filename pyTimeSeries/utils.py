@@ -7,7 +7,6 @@ import os
 
 from pyTimeSeries import spickle
 
-
 ################################################################################
 
 def isiterable(obj):

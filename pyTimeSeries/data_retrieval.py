@@ -51,24 +51,31 @@ def get_from_file_cache(id):
     """
     Check whether the series with the input id is present in the cache
     """
+    logger = logging.getLogger('root')
     if id is None:
         return False
 
     if (config.SERIALISER == 'pickle'):
         cache_file = get_cache_filename_pickle(id)
         if os.path.exists(cache_file):
-            logging.debug("cached file found {0}".format(cache_file))
+            logger.info("cached file found {0}".format(cache_file))
             return utils.deserialise_obj(cache_file)
+        else:
+            logger.info("cached file NOT found {0}".format(cache_file))
     elif (config.SERIALISER == 'spickle'):
         cache_file = get_cache_filename_spickle(id)
         if os.path.exists(cache_file):
-            logging.debug("cached file found {0}".format(cache_file))
+            logger.info("cached file found {0}".format(cache_file))
             return utils.s_deserialise_obj(cache_file)
+        else:
+            logger.info("cached file NOT found {0}".format(cache_file))
     elif (config.SERIALISER == 'csv'):
         cache_file = get_cache_filename_csv(id)
         if os.path.exists(cache_file):
-            logging.debug("cached file found {0}".format(cache_file))
+            logger.info("cached file found {0}".format(cache_file))
             return utils.deserialise_csv(cache_file)
+        else:
+            logger.info("cached file NOT found {0}".format(cache_file))
     else:
         raise Exception('invalid serialiser' + config.SERIALISER)
 
@@ -137,6 +144,7 @@ def get_from_cache(loader, loader_args):
     with the dictionary args and add it to the cache
     """
 
+    logger = logging.getLogger('root')
     client = get_db()
     if client is not None:
         # Get the time series from the db
@@ -145,6 +153,7 @@ def get_from_cache(loader, loader_args):
         if len(match) > 0:
             return match
         else:
+            logger.info('could not find in MONGO cache')
             return None
 
     else:
@@ -184,7 +193,7 @@ def get_time_series(loader, loader_args):
     If it doesn't exit, call the loader function from the data_loader module
     with the dictionary args and add it to the cache
     """
-
+    logger = logging.getLogger('root')
     ts = get_from_cache(loader, loader_args)
 
     if not ts:
@@ -193,6 +202,8 @@ def get_time_series(loader, loader_args):
             write_to_cache(loader, loader_args, ts)
         else:
             return None
+    else:
+        logger.info('Found in cache')
 
     return ts
 

@@ -1,12 +1,9 @@
 import datetime
-import logging
 import random
 
-import config
-
-
-
 ################################################################################
+from pyTimeSeries import log
+from pyTimeSeries import config
 from pyTimeSeries import data_retrieval
 
 
@@ -40,6 +37,7 @@ def test_spickle_vs_csv(index_list, start_date, end_date):
 ################################################################################
 
 def convert_bbg_indices(index_list, start_date, end_date):
+    logger = log.setup_custom_logger('root')
 
     equ_set = set()
 
@@ -48,7 +46,7 @@ def convert_bbg_indices(index_list, start_date, end_date):
     symbol_to_idx = dict()
     idx_to_symbol = list()
     for index in index_list:
-        logging.info('working on index composition: ' + index)
+        logger.info('working on index composition: ' + index)
 
         field = ''
         if index == 'DJI Index':
@@ -89,6 +87,7 @@ def convert_bbg_indices(index_list, start_date, end_date):
 ################################################################################
 
 def get_bbg_indices(index_list, start_date, end_date):
+    logger = log.setup_custom_logger('root')
     equ_set = set()
 
     # Get the time series from the cache
@@ -96,7 +95,7 @@ def get_bbg_indices(index_list, start_date, end_date):
     symbol_to_idx = dict()
     idx_to_symbol = list()
     for index in index_list:
-        logging.info('working on index <' + index + '>')
+        logger.info('working on index <' + index + '>')
         field = ''
         if index == 'DJI Index':
             field = 'INDX_MWEIGHT'
@@ -112,7 +111,7 @@ def get_bbg_indices(index_list, start_date, end_date):
             }
 
         ts = data_retrieval.get_time_series(loader, loader_args)
-        logging.info('index <' + index + '>: timeseries found')
+        logger.info('index <' + index + '>: timeseries found')
         if ts:
             for date, equ_tup in ts:
                 equ_set.update(equ_tup)
@@ -125,6 +124,8 @@ def get_bbg_indices(index_list, start_date, end_date):
 ################################################################################
 
 def get_bbg_equdata(equ_list, start_date, end_date):
+    logger = log.setup_custom_logger('root')
+
     fields = (
         'PX_LAST',                          # Last price of the day
         'PX_OPEN',                          # Open price of the day
@@ -163,7 +164,7 @@ def get_bbg_equdata(equ_list, start_date, end_date):
 
     for equity in equ_list:
         equity += " Equity"
-        logging.info('working on equity <' + equity + '>')
+        logger.info('working on equity <' + equity + '>')
 
         for field in fields:
             loader = 'download_bbg_timeseries';
@@ -176,9 +177,9 @@ def get_bbg_equdata(equ_list, start_date, end_date):
 
             ts = data_retrieval.get_time_series(loader, loader_args)
             if ts:
-                logging.info('  <' + equity + '><' + field + '>:' + str(len(ts)) + ' records')
+                logger.info('  <' + equity + '><' + field + '>:' + str(len(ts)) + ' records')
             else:
-                logging.info('  <' + equity + '><' + field + '>: failed to retrieve')
+                logger.info('  <' + equity + '><' + field + '>: failed to retrieve')
 
 
 
@@ -187,16 +188,7 @@ def get_bbg_equdata(equ_list, start_date, end_date):
 
 if __name__ == '__main__':
     try:
-        # Add the log message handler to the logger
-        logging.basicConfig(level=logging.DEBUG)
-        log_filename = '../../%s-fetchbbg-log.txt' % datetime.datetime.strftime(datetime.datetime.now(),"%Y%m%d %H%M%S")
-        handler = logging.handlers.RotatingFileHandler(log_filename, maxBytes=1000000, backupCount=50)
-        handler.setLevel(logging.DEBUG)
-        formatter = logging.Formatter('%(name)-12s: %(levelname)-8s %(message)s')
-        # tell the handler to use this format
-        handler.setFormatter(formatter)
-        logging.getLogger('').addHandler(handler)
-        logging.info('Starting operation')
+        logger = log.setup_custom_logger('root')
 
         t = datetime.datetime(2014, 1, 4)
         today_date = datetime.datetime(t.year, t.month, t.day)
@@ -223,5 +215,5 @@ if __name__ == '__main__':
         get_bbg_equdata(equ_list, equ_start_date, end_date)
 
     except Exception as e:
-        logging.exception("Uncaught failure during execution")
+        logger.exception("Uncaught failure during execution")
         raise
