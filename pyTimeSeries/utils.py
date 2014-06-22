@@ -1,10 +1,12 @@
 import pickle
-import spickle
 import logging
 import datetime
 import time
 import csv
 import os
+
+from pyTimeSeries import spickle
+
 
 ################################################################################
 

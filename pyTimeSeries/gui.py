@@ -1,14 +1,15 @@
-import wx
 import matplotlib
+
+import wx
 import data_structure
+from pyTimeSeries import timeseries, data_retrieval
+
 
 matplotlib.use('WXAgg')
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg
 import logging
 import datetime
-import data_retrieval
-import timeseries
 
 ################################################################################
 

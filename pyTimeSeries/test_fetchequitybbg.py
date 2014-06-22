@@ -1,11 +1,14 @@
 import datetime
 import logging
-import config
-import data_retrieval
 import random
-import traceback
+
+import config
+
+
 
 ################################################################################
+from pyTimeSeries import data_retrieval
+
 
 def test_spickle_vs_csv(index_list, start_date, end_date):
     for index in index_list:

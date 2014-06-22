@@ -1,15 +1,23 @@
 import unittest
 import os
-import utils
 import math
 import datetime
-import timeseries
+import tempfile
+
+from pyTimeSeries import timeseries
+import utils
 import data_loader
 import data_retrieval
 import data_structure
-import tempfile
 import config
 import db
+
+
+
+
+
+
+
 
 ################################################################################
 

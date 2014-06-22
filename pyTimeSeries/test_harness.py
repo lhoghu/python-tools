@@ -1,15 +1,26 @@
 import logging
-import data_loader
+import datetime
+import random
+
 import matplotlib.pyplot as pyplot
+
+import data_loader
 import data_structure
 import db
+from pyTimeSeries import timeseries, config
 import utils
-import datetime
 import data_retrieval
 import algorithms
-import timeseries
 import charts
-import random
+
+
+
+
+
+
+
+
+
 
 ################################################################################
 
@@ -177,7 +188,6 @@ def insert_timepoint(db_client, collection, id, dte, val):
     })
 
 def load_mongo():
-    import config
     config.MONGO_FOLDER = 'mongo_stress'
     config.MONGOD_PORT = 27021
     collection = 'overload'
@@ -209,7 +219,6 @@ def load_mongo():
                                                      t.interval * 1000.0))
 
 def query_mongo_stress():
-    import config
     config.MONGO_FOLDER = 'mongo_stress'
     config.MONGOD_PORT = 27021
     collection = 'overload'

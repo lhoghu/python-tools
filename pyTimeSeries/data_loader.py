@@ -7,10 +7,15 @@ import tempfile
 import datetime
 import re
 import warnings
+
 import data_structure
+
+
 
 ################################################################################
 # required by BBG COM interface
+from pyTimeSeries import utils
+
 bbg_imports = False
 try:
     from pythoncom import PumpWaitingMessages
@@ -525,7 +530,6 @@ def download_mock_series(symbol, start, end):
 
 if __name__ == '__main__':
     logging.basicConfig(level='DEBUG')
-    import utils
     # utils.serialise_obj(
     #         download_yahoo_timeseries_raw(
     #             'IBM', 

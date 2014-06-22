@@ -1,9 +1,12 @@
 import logging
 import logging.handlers
 import datetime
+
 import data_retrieval
-import sys
 import config
+
+
+
 
 # A. Profitability Signals
 # 1 Net Income - Score 1 if there is positive net income in the current year.
@@ -22,7 +25,7 @@ import config
 # - See more at: http://www.stockopedia.com/content/the-piotroski-f-score-a-fundamental-screen-for-value-stocks-55711/#sthash.0yc4bzoc.dpuf
 
 ################################################################################
-import test_fetchequitybbg
+from pyTimeSeries import test_fetchequitybbg
 
 
 def get_equity_ts(symbol, field, start_date, end_date):

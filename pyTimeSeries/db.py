@@ -1,11 +1,12 @@
-import pymongo
 import subprocess
-import config
 import logging
-import bson.objectid
+
+import pymongo
 from pymongo.son_manipulator import SONManipulator
 
+
 ################################################################################
+from pyTimeSeries import config
 
 MONGO_SERVICE = 'mongod'
 MONGO_HOST = 'localhost'
